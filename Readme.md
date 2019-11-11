@@ -26,24 +26,27 @@ int main(int argc, char* argv[]) {
 }
 ```
 Argparse distinguishes 3 different types of arguments:
-  - `arg(...)` : positional arguments
-  - `kwarg(...)` : arguments that require a key and a value, e.g. `--variable 0.5`. These may have a default value.
-  - `flag(...)` : arguments that do not take any value, but are uses to set a certain flag to true (e.g. `--verbose`).
 
-Argparse support the following syntax
+| Type | Function  |
+| --- |:-------------|
+| `arg(help)`    | positional arguments |
+| `kwarg(key,help,default)`  | keyworded-arguments that require a key and a value, e.g. `--variable 0.5`. These may have a default value.  |
+| `flag(key,help)`   | arguments that do not take any value, but are uses to set a certain flag to true (e.g. `--verbose`) |
+
+Argparse supports the following syntax
 ```
 --long
---long=argument
---long argument
+--long=value
+--long value
 -a
 -ab
--abc=argument
--abc argument
+-abc=value
+-abc value
 ```
-Where on the last 2 lines, `c` takes an argument while `a` and `b` do not. In addition, an argument may be a comma-separated vector.
+Where on the last 2 lines, `a` and `b` are considered `flags`, while `c` is considered a `kwarg` and is set to `value`. In addition, an argument may be a comma-separated vector.
 
 ## Custom classes
-ArgParse support custom classes, as long as they have a constructor that takes a `std::string` as input. For example:
+ArgParse supports custom classes, as long as they have a constructor that takes a `std::string` as input. For example:
 ```c++
 #include "argparse.h"
 
@@ -69,7 +72,7 @@ int main(int argc, char* argv[]) {
 }
 ```
 ```
-./argparse_test -c hello_world
+$ ./argparse_test -c hello_world
 Creating custom class from hello_world
 ```
 ## Examples

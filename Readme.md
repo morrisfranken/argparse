@@ -27,8 +27,8 @@ int main(int argc, char* argv[]) {
 ```
 Argparse distinguishes 3 different types of arguments:
   - `arg(...)` : positional arguments
-  - `kwarg(...)` : arguments that require a key and a value, e.g. `--variable 0.5`. These may have a default value when not required.
-  - `flag(...)` : arguments that do not take any value, but are use to set a certain flag to true (e.g. `--verbose`).
+  - `kwarg(...)` : arguments that require a key and a value, e.g. `--variable 0.5`. These may have a default value.
+  - `flag(...)` : arguments that do not take any value, but are uses to set a certain flag to true (e.g. `--verbose`).
 
 Argparse support the following syntax
 ```
@@ -68,14 +68,14 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 ```
-```c++
+```
 ./argparse_test -c hello_world
 Creating custom class from hello_world
 ```
 ## Examples
 The example in the first code block prints the variables when the `--verbose` flag is used
 
-```c++
+```
 $ ./argparse_test src dst -k 4 --alpha=0.2 --numbers=4,5,6 --verbose
     arg_0(Source ...) : src
     arg_1(Destina...) : dst
@@ -86,7 +86,7 @@ $ ./argparse_test src dst -k 4 --alpha=0.2 --numbers=4,5,6 --verbose
          -v,--verbose : 1
 ```
 The `--help` is automatically added in ArgParse.
-```c++
+```
 $ ./argparse_test --help
 Usage: ./argparse arg_0 arg_1  [options...]
             arg_0 : Source path
@@ -101,7 +101,7 @@ Options:
 
 ```
 When it fails to parse the input string, it will display an error and exit. E.g. here we'll set `k` to be `notanumber` 
-```c++
+```
 $ ./argparse_test src dst -k notanumber --alpha=0.2 --verbose
 Invalid argument, could not convert "notanumber" for -k (A required parameter (short only))
 ```

@@ -55,6 +55,7 @@ namespace std {
 }
 #else // c++17 support
 #include <optional>
+#include <any>
 #endif
 
 #define CONSTRUCTOR(T) T(int argc, char* argv[]) : argparse::Args(argc, argv) {validate();}
@@ -67,6 +68,18 @@ namespace argparse {
 
     template<typename T> struct is_vector : public std::false_type {};
     template<typename T, typename A> struct is_vector<std::vector<T, A>> : public std::true_type {};
+
+    template<typename T> struct is_optional : public std::false_type {};
+    template<typename T> struct is_optional<std::optional<T>> : public std::true_type {};
+
+    template<typename T, typename = decltype(std::declval<std::ostream&>() << std::declval<T const&>())> std::string toString(T const& t) {
+        std::ostringstream out;
+        out << t;
+        return out.str();
+    }
+    template<typename T, typename... Ignored > std::string toString(T const& t, Ignored const&..., ...) {
+        return "unknown";
+    }
 
     std::vector<std::string> inline split(const std::string &str) {
         std::vector<std::string> splits;
@@ -107,16 +120,18 @@ namespace argparse {
         enum ARG_TYPE {ARG, KWARG, FLAG} type;
         std::vector<std::string> keys;
         std::string help;
-        std::optional<std::string> default_value;
+        std::optional<std::string> implicit_value;
         std::string value;
+        std::string default_str;
 //        std::string_view value_type; // remove value_type, since it does not add much to the help
         std::string error;
+        std::optional<std::any> default_value;
 
-        Entry(ARG_TYPE type, const std::string& key, std::string help, std::optional<std::string> default_value=std::nullopt) :
+        Entry(ARG_TYPE type, const std::string& key, std::string help, std::optional<std::string> implicit_value=std::nullopt) :
                 type(type),
                 keys(split(key)),
                 help(std::move(help)),
-                default_value(std::move(default_value)) {
+                implicit_value(std::move(implicit_value)) {
         }
 
         template <typename T> auto find(const T &collection) const -> decltype(collection.end()) {
@@ -138,17 +153,72 @@ namespace argparse {
 
         // Magically convert the value string to the requested type
         template <typename T> inline operator T() {
-//            value_type = type_name<T>();
+            return set_default<T>(T{}, true);
+//            if (!error.empty())
+//                return T{};
+//
+//            if (value.empty()) {
+//                if (default_value.has_value()) {
+//                    cout << (std::any(T{}).type().name()) << endl;
+//                    cout << default_value->type().name() << endl;
+//                    if constexpr (is_optional<T>::value) {
+//                        if (default_value->type() == typeid(std::nullopt_t))
+//                            return std::nullopt;
+//                        return std::any_cast<typename T::value_type>(*default_value);
+//                    } else {
+//                        return std::any_cast<T>(*default_value);
+//                    }
+//                } else {
+//                    error = "Argument missing: " + get_keys();
+//                    return T{};
+//                }
+//            }
+//
+//            try {
+//                if constexpr (is_optional<T>::value) // or std::is_same<T, std::nullopt_t>::value
+//                    return get<typename T::value_type>(value);
+//                else
+//                    return get<T>(value);
+//            } catch (const std::invalid_argument &e) {
+//                this->error = "Invalid argument, could not convert \"" + value + "\" for " + get_keys() + " (" + help + ")";
+//                return T{};
+//            }
+        };
+
+        template <typename T> inline T set_default(const T &default_value, bool is_required=false) {
             if (!error.empty())
                 return T{};
 
+            if (!is_required) {
+                this->default_value = default_value;
+                default_str = toString(default_value);
+            }
+
+            if (value.empty()) {
+                if (is_required) {
+                    error = "Argument missing: " + get_keys();
+                    return T{};
+                } else {
+                    value = default_str; // for printing 
+                    return default_value;
+                }
+            }
+
             try {
-                return get<T>(value);
+                if constexpr (is_optional<T>::value)
+                    return get<typename T::value_type>(value);
+                else
+                    return get<T>(value);
             } catch (const std::invalid_argument &e) {
                 this->error = "Invalid argument, could not convert \"" + value + "\" for " + get_keys() + " (" + help + ")";
                 return T{};
             }
-        };
+        }
+
+//        Entry &set_default(const std::any &default_value) {
+//            this->default_value = default_value;
+//            return *this;
+//        }
     };
 
     class Args {
@@ -211,8 +281,6 @@ namespace argparse {
             Entry &entry = _arg_options.back();
             if (_arg_idx < _args.size()) {
                 entry.value = _args[_arg_idx];
-            } else {
-                entry.error = "Positional argument missing for " + entry.get_keys() + " (" + entry.help + ")";
             }
             return entry;
         }
@@ -224,16 +292,15 @@ namespace argparse {
          *
          * Returns a reference to the Entry, which will collapse into the requested type in `Entry::operator T()`
          */
-        Entry &kwarg(const std::string &key, const std::string &help, const std::optional<std::string>& default_value=std::nullopt) {
-            _options.emplace_back(Entry::KWARG, key, help, default_value);
+        Entry &kwarg(const std::string &key, const std::string &help, const std::optional<std::string>& implicit_value=std::nullopt) {
+            _options.emplace_back(Entry::KWARG, key, help, implicit_value);
             Entry &entry = _options.back();
             const auto itt = entry.find(_kwargs);
             if (itt != _kwargs.end()) {
                 entry.value = itt->second;
-            } else if (default_value.has_value()) {
-                entry.value = *default_value;
-            } else {
-                entry.error = "Option required for " + entry.get_keys() + " (" + entry.help + ")";
+            } else if (implicit_value.has_value()) {
+                if (entry.find(_flags) != _flags.end())
+                    entry.value = *implicit_value;
             }
             return entry;
         }
@@ -245,7 +312,7 @@ namespace argparse {
          * Returns a bool that represents whether or not the flag was set
          */
         bool flag(const std::string &key, const std::string &help) {
-            _options.emplace_back(Entry::FLAG, key, help, "false");
+            _options.emplace_back(Entry::FLAG, key, help, "true");
             Entry &entry = _options.back();
             const auto itt = entry.find(_flags);
             entry.value = std::to_string(itt != _flags.end());
@@ -257,13 +324,18 @@ namespace argparse {
             for (const auto &entry : _arg_options)
                 cout << entry.keys[0] << ' ';
             cout << " [options...]" << endl;
-            for (const auto &entry : _arg_options)
-                cout << setw(17) << entry.keys[0] << " : " <<  entry.help << endl;
+            for (const auto &entry : _arg_options) {
+                const std::string default_value = entry.default_value.has_value()? " [default: " + entry.default_str + "]" : "";
+                cout << setw(17) << entry.keys[0] << " : " << entry.help << default_value << endl;
+            }
 
             cout << endl << "Options:" << endl;
             for (const auto &entry : _options) {
-                const std::string default_value = entry.type == Entry::FLAG ? "" : " [" + entry.default_value.value_or("*") + "]";
-                cout << setw(17) << entry.get_keys() << " : " << entry.help << default_value << endl;
+                const std::string default_value = entry.type == Entry::KWARG? entry.default_value.has_value()? "default: " + entry.default_str : "required" : "";
+                const std::string implicit_value = entry.type == Entry::KWARG and entry.implicit_value.has_value()? "implicit: " + *entry.implicit_value : "";
+                const std::string info = entry.type == Entry::KWARG? " [" + implicit_value + (implicit_value.empty() or default_value.empty()? "":", ") + default_value + "]" : "";
+//                const std::string implicit_value = entry.type == Entry::KWARG ? " [" + (entry.implicit_value.has_value()? *entry.implicit_value : entry.default_value.has_value()? "n/a" : "*") + "]" : "";
+                cout << setw(17) << entry.get_keys() << " : " << entry.help << info << endl;
             }
         }
 
@@ -271,7 +343,7 @@ namespace argparse {
          * Upon error, it will print the error and exit immediatelyy.
          */
         void validate() const {
-            if (_help || (_args.empty() && _kwargs.empty() && _flags.empty())) {
+            if (_help) {
                 help();
                 exit(0);
             }

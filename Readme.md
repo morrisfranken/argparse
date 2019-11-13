@@ -31,7 +31,7 @@ Argparse distinguishes 3 different types of arguments:
 | --- |:-------------|
 | `arg(help)`    | positional arguments |
 | `kwarg(key,help,default)`  | keyworded-arguments that require a key and a value, e.g. `--variable 0.5`. These may have a default value.  |
-| `flag(key,help)`   | arguments that do not take any value, but are uses to set a certain flag to true (e.g. `--verbose`) |
+| `flag(key,help)`   | arguments that do not take any value, but are used to set a certain flag to true (e.g. `--verbose`) |
 
 Argparse supports the following syntax
 ```
@@ -110,9 +110,9 @@ Invalid argument, could not convert "notanumber" for -k (A required parameter (s
 ```
 
 ## Installing
-Since it is an header-only library, you can simply copy the `include/argparse.h` file in your own project. 
+Since it is an header-only library, you can simply copy the `include/argparse.h` file in to your own project. 
 
-Alternatively you can build&install it using the following commands
+Alternatively, you can build&install it using the following commands
 ```
 mkdir build && cd build
 cmake ..

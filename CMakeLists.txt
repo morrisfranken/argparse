@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.15)
 project(argparse)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
-set(VERSION 1.0.0)
+set(VERSION 1.1.0)
 message(STATUS "argparse version ${VERSION}")
 
-add_executable(argparse_test src/main.cpp include/argparse.h)
+add_executable(argparse_test src/argparse_test.cpp include/argparse.h)
 include_directories(argparse_test include)
 
 # installing the header-only-library

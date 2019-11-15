@@ -76,6 +76,9 @@ namespace argparse {
     template<typename T> struct is_optional : public std::false_type {};
     template<typename T> struct is_optional<std::optional<T>> : public std::true_type {};
 
+    template<typename T> struct is_shared_ptr : public std::false_type {};
+    template<typename T> struct is_shared_ptr<std::shared_ptr<T>> : public std::true_type {};
+
     template<typename T, typename = decltype(std::declval<std::ostream&>() << std::declval<T const&>())> std::string toString(const T &v) {
         std::ostringstream out;
         out << v;
@@ -105,21 +108,31 @@ namespace argparse {
     template<> inline unsigned char get(const std::string &v) { return get<char>(v); }
     template<> inline unsigned int get(const std::string &v) { return std::stoul(v); }
     template<> inline unsigned long get(const std::string &v) { return std::stoul(v); }
-    template<typename T> T get_vector_optional_default(std::true_type is_vector, std::false_type is_optional, const std::string &v) {
-        const std::vector<std::string> splitted = split(v);
-        T res(splitted.size());
-        if (!v.empty())
-            std::transform (splitted.begin(), splitted.end(), res.begin(), get<typename T::value_type>);
-        return res;
-    }
-    template<typename T> T get_vector_optional_default(std::false_type is_vector, std::true_type is_optional, const std::string &v) {
-        return std::optional<typename T::value_type>(get<typename T::value_type>(v));
-    }
-    template<typename T> T get_vector_optional_default(std::false_type is_vector, std::false_type is_optional, const std::string &v) {
-        return T(v);
+    namespace {
+        using _=std::false_type;
+        using U=std::true_type;
+        template<typename T> T get_vector_pointer_optional_default(U,_,_,_, const std::string &v) { // vectors
+            const std::vector<std::string> splitted = split(v);
+            T res(splitted.size());
+            if (!v.empty())
+                std::transform (splitted.begin(), splitted.end(), res.begin(), get<typename T::value_type>);
+            return res;
+        }
+        template<typename T> T get_vector_pointer_optional_default(_, U, _, _, const std::string &v) { // raw pointers
+            return new typename std::remove_pointer<T>::type(get<typename std::remove_pointer<T>::type>(v));
+        }
+        template<typename T> T get_vector_pointer_optional_default(_, _, U, _, const std::string &v) { // shared pointers
+            return std::make_shared<typename T::element_type>(get<typename T::element_type>(v));
+        }
+        template<typename T> T get_vector_pointer_optional_default(_, _, _, U, const std::string &v) { // std::optionals
+            return get<typename T::value_type>(v);
+        }
+        template<typename T> T get_vector_pointer_optional_default(_, _, _, _, const std::string &v) { // default (use string constructor)
+            return T(v);
+        }
     }
     template<typename T> inline T get(const std::string &v) { // "if constexpr" are only supported from c++17, so use this to distuingish vectors.
-        return get_vector_optional_default<T>(is_vector<T>{}, is_optional<T>{}, v);
+        return get_vector_pointer_optional_default<T>(is_vector<T>{}, std::is_pointer<T>{}, is_shared_ptr<T>{}, is_optional<T>{}, v);
     }
 
     struct Entry {
@@ -162,8 +175,14 @@ namespace argparse {
         }
 
         // Magically convert the value string to the requested type
-        template <typename T> inline operator T() {
+        template <typename T, typename = typename std::enable_if<not (is_optional<T>::value or std::is_pointer<T>::value or is_shared_ptr<T>::value)>::type> inline operator T() {
             return _convert<T>();
+        };
+        // Automatically set the default to nullptr for pointer types
+        template <typename T, typename = typename std::enable_if<(std::is_pointer<T>::value or is_shared_ptr<T>::value)>::type, typename... Ignored> inline operator T() {
+            T default_value = nullptr;
+            default_str = "null";
+            return _convert<T>(&default_value);
         };
 
         private:
@@ -204,6 +223,8 @@ namespace argparse {
         std::map<std::string_view, std::string> _kwargs;
 
     public:
+        virtual ~Args() = default;
+
         Args(int argc, char *argv[]) : program_name(argv[0]) {
             std::vector<std::string_view> params(argv + 1, argv + argc);
 
@@ -257,7 +278,7 @@ namespace argparse {
         /* Add a variable argument that takes a variable.
          * key : A comma-separated string, e.g. "k,key", which denotes the short (-k) and long(--key) keys
          * help : Description of the variable
-         * default_value : A default can be set as std::string
+         * implicit_value : Implicit values are used when no value is provided.
          *
          * Returns a reference to the Entry, which will collapse into the requested type in `Entry::operator T()`
          */
@@ -288,7 +309,7 @@ namespace argparse {
             return itt != _flags.end();
         }
 
-        void help() const {
+        virtual void help() const {
             cout << "Usage: " << program_name << " ";
             for (const auto &entry : _arg_options)
                 cout << entry.keys[0] << ' ';

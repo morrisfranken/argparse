@@ -30,6 +30,7 @@
 #include <string>
 #include <map>
 #include <set>
+#include <memory>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
@@ -70,6 +71,8 @@ namespace argparse {
     using std::endl;
     using std::setw;
 
+    template <typename T> using MultiArgument = std::vector<T>&;
+
     template<typename T> struct is_vector : public std::false_type {};
     template<typename T, typename A> struct is_vector<std::vector<T, A>> : public std::true_type {};
 
@@ -78,6 +81,9 @@ namespace argparse {
 
     template<typename T> struct is_shared_ptr : public std::false_type {};
     template<typename T> struct is_shared_ptr<std::shared_ptr<T>> : public std::true_type {};
+
+    template<typename T> struct is_multiargument : public std::false_type {};
+    template<typename T> struct is_multiargument<MultiArgument<T>> : public std::true_type {};
 
     template<typename T, typename = decltype(std::declval<std::ostream&>() << std::declval<T const&>())> std::string toString(const T &v) {
         std::ostringstream out;
@@ -111,28 +117,35 @@ namespace argparse {
     namespace {
         using _=std::false_type;
         using U=std::true_type;
-        template<typename T> T get_vector_pointer_optional_default(U,_,_,_, const std::string &v) { // vectors
+        template<typename T> T get_vector_pointer_optional_default(U,_,_,_,_, const std::string &v) { // vectors
             const std::vector<std::string> splitted = split(v);
             T res(splitted.size());
             if (!v.empty())
                 std::transform (splitted.begin(), splitted.end(), res.begin(), get<typename T::value_type>);
             return res;
         }
-        template<typename T> T get_vector_pointer_optional_default(_, U, _, _, const std::string &v) { // raw pointers
+        template<typename T> T get_vector_pointer_optional_default(_, U, _, _, _, const std::string &v) { // raw pointers
             return new typename std::remove_pointer<T>::type(get<typename std::remove_pointer<T>::type>(v));
         }
-        template<typename T> T get_vector_pointer_optional_default(_, _, U, _, const std::string &v) { // shared pointers
+        template<typename T> T get_vector_pointer_optional_default(_, _, U, _, _, const std::string &v) { // shared pointers
             return std::make_shared<typename T::element_type>(get<typename T::element_type>(v));
         }
-        template<typename T> T get_vector_pointer_optional_default(_, _, _, U, const std::string &v) { // std::optionals
+        template<typename T> T get_vector_pointer_optional_default(_, _, _, U, _, const std::string &v) { // std::optionals
             return get<typename T::value_type>(v);
         }
-        template<typename T> T get_vector_pointer_optional_default(_, _, _, _, const std::string &v) { // default (use string constructor)
+        template<typename T> T get_vector_pointer_optional_default(_, _, _, _, U, const std::string &v) { // multi arguments
+            const std::vector<std::string> splitted = split(v);
+            T *res = new T(splitted.size());
+            if (!v.empty())
+                std::transform (splitted.begin(), splitted.end(), res->begin(), get<typename T::value_type>);
+            return *res;
+        }
+        template<typename T> T get_vector_pointer_optional_default(_, _, _, _, _, const std::string &v) { // default (use string constructor)
             return T(v);
         }
     }
     template<typename T> inline T get(const std::string &v) { // "if constexpr" are only supported from c++17, so use this to distuingish vectors.
-        return get_vector_pointer_optional_default<T>(is_vector<T>{}, std::is_pointer<T>{}, is_shared_ptr<T>{}, is_optional<T>{}, v);
+        return get_vector_pointer_optional_default<T>(is_vector<T>{}, std::is_pointer<T>{}, is_shared_ptr<T>{}, is_optional<T>{}, is_multiargument<T>{}, v);
     }
 
     struct Entry {

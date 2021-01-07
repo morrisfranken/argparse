@@ -1,5 +1,9 @@
+/* @author: Morris Franken
+ * This argparse version relies on packed struct, and reflection to set the variables.
+ * STATUS: working, but MUST use the #pragma pack(1), and #pragma pack()  (https://stackoverflow.com/questions/24887459/c-c-struct-packing-not-working)
+ *  - std::optional ont working
+ */
 #include <iostream>
-#include <assert.h>
 
 #include "argparse3.h"
 
@@ -14,9 +18,10 @@ struct Custom {
     }
 };
 
-PACKED_STRUCT(MyArgs3) : public argparse3::Args {
+#pragma pack(1)
+struct MyArgs3 : public argparse3::Args {
     std::string src_path           = arg("Source path");
-    std::string dst_path           = arg("Destination path").set_default("world");// default value set to "world"
+    std::string dst_path           = arg("Destination path").set_default("world"s);// default value set to "world"
     std::vector<std::string> others= arg("Others").multi_argument().set_default<std::vector<std::string>>({});// default value set to "world"
     int k                          = kwarg("k", "A required parameter (short only)", "3");   // Implicit value set to 3
     std::shared_ptr<float> alpha   = kwarg("a,alpha", "An optional float parameter");                    // pointers have a default value of nullptr
@@ -26,22 +31,25 @@ PACKED_STRUCT(MyArgs3) : public argparse3::Args {
     std::vector<int> numbers       = kwarg("n,numbers", "An optional vector of integers").set_default<std::vector<int>>({1,2});
     std::vector<int> numbers2      = kwarg("numbers2", "An optional vector of integers").set_default("1,2,3");
     std::vector<int> multiple      = kwarg("m,multiple", "An optional vector of integers taking multiple arguments").multi_argument().set_default(std::vector<int>{1,2});
-    std::optional<float> opt       = kwarg("o,optional", "An optional float parameter");
+//    std::optional<float> opt       = kwarg("o,optional", "An optional float parameter");
     bool verbose                   = flag("v,verbose", "A flag to toggle verbose");
     bool flag1                     = flag("f,flag", "A test flag");
 
-    MyArgs3(int argc, char *argv[]) : argparse3::Args(argc, argv) {
-        cout << "validating..." << endl;
-        cout << "offset verbose: " << offsetof(MyArgs3, verbose) << endl;
-        cout << "offset alpha: " << offsetof(MyArgs3, alpha) << endl;
-        cout << "offset help: " << offsetof(MyArgs3, _help) << endl;
-        cout << "sizeof shared ptr: " << sizeof(std::shared_ptr<float>) << endl;
-        cout << "sizeof int: " << sizeof(int) << endl;
-        validate(_help);
-    }
-    bool _help = flag("help", "print help");
-//    CONSTRUCTOR(MyArgs);
+//    MyArgs3(int argc, char *argv[]) : argparse3::Args(argc, argv) {
+//        cout << "validating..." << endl;
+//        cout << "offset verbose: " << offsetof(MyArgs3, verbose) << endl;
+//        cout << "offset k: " << offsetof(MyArgs3, k) << endl;
+//        cout << "offset alpha: " << offsetof(MyArgs3, alpha) << endl;
+//        cout << "offset help: " << offsetof(MyArgs3, _help) << endl;
+//        cout << "sizeof shared ptr: " << sizeof(std::shared_ptr<float>) << endl;
+//        cout << "sizeof int: " << sizeof(int) << endl;
+//        validate(_help);
+//    }
+//    bool _help = flag("help", "print help");
+
+    CONSTRUCTOR(MyArgs3);
 };
+#pragma pack()
 
 //struct MyArgs2 : public argparse3::Args {
 //    std::string src_path              = arg("Source path");
@@ -73,6 +81,9 @@ struct A {
 int main(int argc, char* argv[])  {
 //    A a;
 //    std::optional<float> opt = a;
+
+//    cout << "s = " << sizeof(std::shared_ptr<float>) << endl;
+//    cout << "s = " << sizeof(std::shared_ptr<char[50]>) << endl;
 
     MyArgs3 args(argc, argv);      // a -k -fc custom -m 3 2 1 --verbose 5
 

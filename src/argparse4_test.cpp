@@ -9,18 +9,11 @@
 
 using namespace std;
 
-struct Entry {
-    template <typename T> inline operator T();
-    template <typename T> inline operator T&() {
-        T* t = new T{};
-        if constexpr (!std::is_reference<T>::value) {
-            cout << " NOT A REF" << endl;
-        }
-        return *t;
-    }
+enum Color {
+    RED,
+    BLUE,
+    GREEN,
 };
-
-enum class Color { RED = 2, BLUE = 4, GREEN = 8 };
 
 struct Custom {
     std::string message;
@@ -31,6 +24,21 @@ struct Custom {
     }
 };
 
+#if true
+struct MyArgs : public argparse4::Args {
+    std::string &src_path           = arg("Source path");
+    std::string &dst_path           = arg("Destination path").set_default("default_destination");
+    int &k                          = kwarg("k", "An implicit int parameter", /*implicit*/"3");
+    float &alpha                    = kwarg("a,alpha", "An optional float parameter with default value").set_default(0.6f);
+    std::optional<float> &beta      = kwarg("b,beta", "An optional float parameter with std::optional return");
+    std::vector<int> &numbers       = kwarg("n,numbers", "An int vector, comma separated");
+    std::vector<std::string> &files = kwarg("files", "mutliple arguments").multi_argument();
+    Color &color                    = kwarg("c,color", "An Enum input");
+    bool &verbose                   = flag("v,verbose", "A flag to toggle verbose");
+
+    CONSTRUCTOR(MyArgs);
+};
+#else
 struct MyArgs : public argparse4::Args {
     std::string& src_path           = arg("Source path");
     std::string& dst_path           = arg("Destination path").set_default("world");// default value set to "world"
@@ -57,11 +65,16 @@ struct MyArgs : public argparse4::Args {
 
     CONSTRUCTOR(MyArgs);
 };
+#endif
 
 
 int main(int argc, char* argv[]) {
     MyArgs args(argc, argv);
-    args.print();
+
+    cout << "beta is: " << (args.beta.has_value()? std::to_string(args.beta.value()) : "nullptr") << endl;
+
+    if (args.verbose)
+        args.print();
 
     return 0;
 }

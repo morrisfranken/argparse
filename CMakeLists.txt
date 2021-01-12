@@ -3,12 +3,14 @@ project(argparse)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(VERSION 1.1.0)
+set(VERSION 1.4.0)
 message(STATUS "argparse version ${VERSION}")
 
 #add_executable(argparse_test include/argparse.h include/argparse2.h src/argparse_test.cpp)
 #add_executable(argparse_test include/argparse3.h src/argparse3_test.cpp)
 add_executable(argparse_test include/argparse4.h src/argparse4_test.cpp)
+#target_compile_options(argparse_test PUBLIC -ftime-report)
+#target_precompile_headers(argparse_test PUBLIC include/argparse4.h) --> should be enabled on release
 target_link_libraries(argparse_test)
 include_directories(argparse_test include)
 

@@ -23,20 +23,22 @@
 // FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
-#include <vector>
-#include <string>
-#include <map>
-#include <sstream>
-#include <ostream>
-#include <iterator>
-#include <iostream>
-#include <iomanip>
-#include <algorithm>
-#include <memory>
-#include <optional>
-#include <numeric>
-
-#include <magic_enum.hpp>
+#include <cctype>              // for isdigit, tolower
+#include <ext/alloc_traits.h>  // for __alloc_traits<>::value_type
+#include <cstdlib>             // for size_t, exit
+#include <algorithm>           // for max, transform, copy, min
+#include <iomanip>             // for operator<<, setw
+#include <iostream>            // for operator<<, basic_ostream, endl, ostream
+#include <iterator>            // for ostream_iterator
+#include <magic_enum.hpp>      // for enum_entries
+#include <map>                 // for operator!=, map, _Rb_tree_iterator
+#include <memory>              // for allocator, shared_ptr, __shared_ptr_ac...
+#include <optional>            // for optional, nullopt
+#include <stdexcept>           // for runtime_error, invalid_argument
+#include <string>              // for string, operator+, basic_string, char_...
+#include <type_traits>         // for declval, false_type, true_type, is_enum
+#include <utility>             // for move, pair
+#include <vector>              // for vector
 
 #define ARGPARSE_VERSION 4
 
@@ -57,11 +59,13 @@ namespace argparse4 {
     template <typename, typename = void> struct has_ostream_operator : std::false_type {};
     template <typename T> struct has_ostream_operator<T, decltype(void(std::declval<std::ostream&>() << std::declval<const T&>()))> : std::true_type {};
 
+    std::string bold(const std::string& input_str) {
+        return "\e[1m" + input_str + "\e[0m";
+    }
+
     template<typename T> std::string toString(const T &v) {
-        if constexpr (std::is_same<T, bool>::value) {
-            return v? "true" : "false"; // special case for boolean to write true/false instead of 1/0
-        } else if constexpr (has_ostream_operator<T>::value) {
-            return static_cast<std::ostringstream &&>((std::ostringstream() << v)).str();       // https://github.com/stan-dev/math/issues/590#issuecomment-550122627
+        if constexpr (has_ostream_operator<T>::value) {
+            return static_cast<std::ostringstream &&>((std::ostringstream() << std::boolalpha << v)).str();       // https://github.com/stan-dev/math/issues/590#issuecomment-550122627
         } else {
             return "unknown";
         }
@@ -77,7 +81,7 @@ namespace argparse4 {
         return splits;
     }
 
-    template <typename T> std::string to_lower(const T &str_) {
+    template <typename T> std::string to_lower(const T &str_) { // both std::string and std::basic_string_view<char> (for magic_enum) are using to_lower
         std::string str(str_.size(), '\0');
         std::transform(str_.begin(), str_.end(), str.begin(), tolower);
         return str;
@@ -129,7 +133,7 @@ namespace argparse4 {
         virtual ~ConvertBase() = default;
         virtual void convert(const std::string &v) = 0;
         virtual void set_default(const std::unique_ptr<ConvertBase> &default_value) = 0;
-        virtual std::string get_allowed_entries() const = 0;
+        [[nodiscard]] virtual std::string get_allowed_entries() const = 0;
     };
 
     template <typename T> struct ConvertType : public ConvertBase {
@@ -159,32 +163,16 @@ namespace argparse4 {
 
     struct Entry {
         enum ARG_TYPE {ARG, KWARG, FLAG} type;
-        std::vector<std::string> keys_;
-        std::string help;
-        std::optional<std::string> value;
-        std::optional<std::string> implicit_value;
-        std::optional<std::string> default_str_;
-        std::string error;
-        std::unique_ptr<ConvertBase> datap;
-        std::unique_ptr<ConvertBase> data_default;
-        bool _is_multi_argument = false;
 
         Entry(ARG_TYPE type, const std::string& key, std::string help, std::optional<std::string> implicit_value=std::nullopt) :
                 type(type),
                 keys_(split(key)),
                 help(std::move(help)),
-                implicit_value(std::move(implicit_value)) {
-        }
-
-        [[nodiscard]] std::string _get_keys() const {
-            std::stringstream ss;
-            for (size_t i = 0; i < keys_.size(); i++)
-                ss << (i? "," : "") << (type == ARG? "" : (keys_[i].size() > 1 ? "--" : "-")) + keys_[i];
-            return ss.str();
+                implicit_value_(std::move(implicit_value)) {
         }
 
         // Allow both string inputs and direct-type inputs. Where a string-input will be converted like it would when using the commandline, and the direct approach is to simply use the value provided.
-        template <typename T> inline Entry &set_default(const T &default_value) {
+        template <typename T> Entry &set_default(const T &default_value) {
             this->default_str_ = toString(default_value);
             if constexpr (!(std::is_array<T>::value || std::is_same<typename std::remove_all_extents<T>::type, char>::value)) {
                 data_default = std::make_unique<ConvertType<T>>(default_value);
@@ -192,20 +180,22 @@ namespace argparse4 {
             return *this;
         }
 
-        inline Entry &multi_argument() {
+        Entry &multi_argument() {
             _is_multi_argument = true;
             return *this;
         }
 
         // Magically convert the value string to the requested type
-        template <typename T> inline operator T&() {
+        template <typename T> operator T&() {
+            // Automatically set the default to nullptr for pointer types and empty for optional types
             if constexpr (is_optional<T>::value || std::is_pointer<T>::value || is_shared_ptr<T>::value) {
-                // Automatically set the default to nullptr for pointer types and empty for optional types
-                default_str_ = "none";
-                if constexpr(is_optional<T>::value) {
-                    data_default = std::make_unique<ConvertType<T>>(T{std::nullopt});
-                } else {
-                    data_default = std::make_unique<ConvertType<T>>((T) nullptr);
+                if (default_str_->empty()) {
+                    default_str_ = "none";
+                    if constexpr(is_optional<T>::value) {
+                        data_default = std::make_unique<ConvertType<T>> (T{std::nullopt});
+                    } else {
+                        data_default = std::make_unique<ConvertType<T>> ((T) nullptr);
+                    }
                 }
             }
 
@@ -214,11 +204,30 @@ namespace argparse4 {
         };
 
         // Force an ambiguous error when not using a reference.
-        template <typename T> inline operator T() {} // When you get here  because you received an error, make sure all parameters of argparse are references (e.g. with `&`)
+        template <typename T> operator T() {} // When you get here  because you received an error, make sure all parameters of argparse are references (e.g. with `&`)
+
+    private:
+        std::vector<std::string> keys_;
+        std::string help;
+        std::optional<std::string> value_;
+        std::optional<std::string> implicit_value_;
+        std::optional<std::string> default_str_;
+        std::string error;
+        std::unique_ptr<ConvertBase> datap;
+        std::unique_ptr<ConvertBase> data_default;
+        bool _is_multi_argument = false;
+        bool is_set_by_user = true;
+
+        [[nodiscard]] std::string _get_keys() const {
+            std::stringstream ss;
+            for (size_t i = 0; i < keys_.size(); i++)
+                ss << (i? "," : "") << (type == ARG? "" : (keys_[i].size() > 1 ? "--" : "-")) + keys_[i];
+            return ss.str();
+        }
 
         void _convert(const std::string &value) {
             try {
-                this->value = value;
+                this->value_ = value;
                 datap->convert(value);
             } catch (const std::invalid_argument &e) {
                 error = "Invalid argument, could not convert \"" + value + "\" for " + _get_keys() + " (" + help + ")";
@@ -228,8 +237,9 @@ namespace argparse4 {
         }
 
         void _apply_default() {
+            is_set_by_user = false;
             if (data_default != nullptr) {
-                value = *default_str_; // for printing
+                value_ = *default_str_; // for printing
                 datap->set_default(data_default);
             } else if (default_str_.has_value()) {   // in cases where a string is provided to the `set_default` function
                 _convert(default_str_.value());
@@ -240,11 +250,13 @@ namespace argparse4 {
 
         [[nodiscard]] std::string info() const {
             const std::string allowed_entries = datap->get_allowed_entries();
-            const std::string default_value_ = default_str_.has_value() ? "default: " + *default_str_ : "required";
-            const std::string implicit_value_ = implicit_value.has_value() ? "implicit: \"" + *implicit_value + "\", ": "";
-            const std::string allowed_value_ = !allowed_entries.empty()? "allowed: <" + allowed_entries.substr(0, allowed_entries.size()-2) + ">, ": "";
-            return " [" + allowed_value_ + implicit_value_ + default_value_ + "]";
+            const std::string default_value = default_str_.has_value() ? "default: " + *default_str_ : "required";
+            const std::string implicit_value = implicit_value_.has_value() ? "implicit: \"" + *implicit_value_ + "\", ": "";
+            const std::string allowed_value = !allowed_entries.empty()? "allowed: <" + allowed_entries.substr(0, allowed_entries.size()-2) + ">, ": "";
+            return " [" + allowed_value + implicit_value + default_value + "]";
         }
+
+        friend class Args;
     };
 
     class Args {
@@ -295,9 +307,9 @@ namespace argparse4 {
          * key : A comma-separated string, e.g. "k,key", which denotes the short (-k) and long(--key) keys_
          * help : Description of the variable
          *
-         * Returns a reference to a bool (collapsed right here to avoid potential confusing to add different function to the flag)
+         * Returns reference to Entry like kwarg
          */
-        bool &flag(const std::string &key, const std::string &help) {
+        Entry &flag(const std::string &key, const std::string &help) {
             return kwarg(key, help, "true").set_default<bool>(false);
         }
 
@@ -343,8 +355,8 @@ namespace argparse4 {
                     auto itt = kwarg_entries.find(key);
                     if (itt != kwarg_entries.end()) {
                         auto &entry = itt->second;
-                        if (entry->implicit_value.has_value()) {
-                            entry->_convert(*entry->implicit_value);
+                        if (entry->implicit_value_.has_value()) {
+                            entry->_convert(*entry->implicit_value_);
                         } else {
                             if (is_value(i + 1)) {
                                 std::string value = params[++i];
@@ -353,6 +365,8 @@ namespace argparse4 {
                                         value += "," + params[++i];
                                 }
                                 entry->_convert(value);
+                            } else if (entry->_is_multi_argument) {
+                                entry->_convert("");
                             } else {
                                 entry->error = "No value provided for: " + key;
                             }
@@ -375,8 +389,8 @@ namespace argparse4 {
                             auto itt = kwarg_entries.find(key);
                             if (itt != kwarg_entries.end()) {
                                 auto &entry = itt->second;
-                                if (entry->implicit_value.has_value()) {
-                                    entry->_convert(*entry->implicit_value);
+                                if (entry->implicit_value_.has_value()) {
+                                    entry->_convert(*entry->implicit_value_);
                                 } else {
                                     entry->error = "No (Implicit) value provided for: " + key;
                                 }
@@ -402,7 +416,7 @@ namespace argparse4 {
                 size_t flat_idx = arguments_flat.size() - arg_j;
                 if (flat_idx < arguments_flat.size() && flat_idx >= arg_i) {
                     if (arg_entries[arg_entries.size() - arg_j]->_is_multi_argument) {
-                        std::stringstream s;
+                        std::stringstream s;  // Combine multiple arguments into 1 comma-separated string for parsing
                         copy(&arguments_flat[arg_i],&arguments_flat[flat_idx + 1], std::ostream_iterator<std::string>(s,","));
                         std::string value = s.str();
                         value.back() = '\0'; // remove trailing ','
@@ -415,7 +429,7 @@ namespace argparse4 {
 
             // try to apply default values for arguments which have not been set
             for (const auto &entry : all_entries) {
-                if (!entry->value.has_value()) {
+                if (!entry->value_.has_value()) {
                     entry->_apply_default();
                 }
             }
@@ -443,7 +457,7 @@ namespace argparse4 {
         void print() const {
             for (const auto &entry : all_entries) {
                 std::string snip = entry->type == Entry::ARG ? "(" + (entry->help.size() > 10 ? entry->help.substr(0, 7) + "..." : entry->help) + ")" : "";
-                cout << setw(21) << entry->_get_keys() + snip << " : " << entry->value.value_or("null") << endl;
+                cout << setw(21) << entry->_get_keys() + snip << " : " << (entry->is_set_by_user? bold(entry->value_.value_or("null")) : entry->value_.value_or("null")) << endl;
             }
         }
     };

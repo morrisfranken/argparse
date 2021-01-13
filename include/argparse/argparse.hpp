@@ -43,7 +43,7 @@
 #define ARGPARSE_VERSION 4
 
 namespace argparse4 {
-    using std::cout, std::cerr, std::endl, std::setw;
+    using std::cout, std::cerr, std::endl, std::setw, std::size_t;
 
 #define CONSTRUCTOR(T) T(int argc, char* argv[]) : argparse4::Args(argc, argv) {validate();}
 
@@ -287,7 +287,7 @@ namespace argparse4 {
             return *entry;
         }
 
-        /* Add a variable argument that takes a variable.
+        /* Add a Key-Worded argument that takes a variable.
          * key : A comma-separated string, e.g. "k,key", which denotes the short (-k) and long(--key) keys_
          * help : Description of the variable
          * implicit_value : Implicit values are used when no value is provided.
@@ -338,42 +338,43 @@ namespace argparse4 {
             auto is_value = [&](const size_t &i) -> bool {
                 return params.size() > i && (params[i][0] != '-' || (params[i].size() > 1 && std::isdigit(params[i][1])));  // check for number to not accidentally mark negative numbers as non-parameter
             };
+            auto parse_param = [&](size_t &i, const std::string &key, const bool is_short, const std::optional<std::string> &equal_value=std::nullopt) {
+                auto itt = kwarg_entries.find(key);
+                if (itt != kwarg_entries.end()) {
+                    auto &entry = itt->second;
+                    if (equal_value.has_value()) {
+                        entry->_convert(equal_value.value());
+                    } else if (entry->implicit_value_.has_value()) {
+                        entry->_convert(*entry->implicit_value_);
+                    } else if (!is_short) { // short values are not allowed to look ahead for the next parameter
+                        if (is_value(i + 1)) {
+                            std::string value = params[++i];
+                            if (entry->_is_multi_argument) {
+                                while (is_value(i + 1))
+                                    value += "," + params[++i];
+                            }
+                            entry->_convert(value);
+                        } else if (entry->_is_multi_argument) {
+                            entry->_convert("");    // for multiargument parameters, return an empty vector when not passing any more values
+                        } else {
+                            entry->error = "No value provided for: " + key;
+                        }
+                    } else {
+                        entry->error = "No value provided for: " + key;
+                    }
+                } else {
+                    cerr << "unrecognised commandline argument: " << key << endl;
+                }
+            };
             auto add_param = [&](size_t &i, const size_t &start) {
                 size_t eq_idx = params[i].find('=');  // check if value was passed using the '=' sign
                 if (eq_idx != std::string::npos) { // key/value from = notation
                     std::string key = params[i].substr(start, eq_idx - start);
                     std::string value = params[i].substr(eq_idx + 1);
-                    auto itt = kwarg_entries.find(key);
-                    if (itt != kwarg_entries.end()) {
-                        auto &entry = itt->second;
-                        entry->_convert(value);
-                    } else {
-                        cerr << "unrecognised commandline argument: " << key << endl;
-                    }
+                    parse_param(i, key, false, value);
                 } else {
                     std::string key = std::string(params[i].substr(start));
-                    auto itt = kwarg_entries.find(key);
-                    if (itt != kwarg_entries.end()) {
-                        auto &entry = itt->second;
-                        if (entry->implicit_value_.has_value()) {
-                            entry->_convert(*entry->implicit_value_);
-                        } else {
-                            if (is_value(i + 1)) {
-                                std::string value = params[++i];
-                                if (entry->_is_multi_argument) {
-                                    while (is_value(i + 1))
-                                        value += "," + params[++i];
-                                }
-                                entry->_convert(value);
-                            } else if (entry->_is_multi_argument) {
-                                entry->_convert("");
-                            } else {
-                                entry->error = "No value provided for: " + key;
-                            }
-                        }
-                    } else {
-                        cerr << "unrecognised commandline argument: " << key << endl;
-                    }
+                    parse_param(i, key, false);
                 }
             };
 
@@ -385,18 +386,8 @@ namespace argparse4 {
                     } else { // short -
                         const size_t j_end = std::min(params[i].size(), params[i].find('=')) - 1;
                         for (size_t j = 1; j < j_end; j++) { // add possible other flags
-                            std::string key = std::string(1, params[i][j]);
-                            auto itt = kwarg_entries.find(key);
-                            if (itt != kwarg_entries.end()) {
-                                auto &entry = itt->second;
-                                if (entry->implicit_value_.has_value()) {
-                                    entry->_convert(*entry->implicit_value_);
-                                } else {
-                                    entry->error = "No (Implicit) value provided for: " + key;
-                                }
-                            } else {
-                                cerr << "unrecognised commandline argument: " << key << endl;
-                            }
+                            const std::string key = std::string(1, params[i][j]);
+                            parse_param(i, key, true);
                         }
                         add_param(i, j_end);
                     }
@@ -412,7 +403,7 @@ namespace argparse4 {
                     arg_entries[arg_i]->_convert(arguments_flat[arg_i]);
             }
             size_t arg_j = 1;
-            for (size_t j_end = arg_entries.size() - arg_i; arg_j <= j_end; arg_j++) {
+            for (size_t j_end = arg_entries.size() - arg_i; arg_j <= j_end; arg_j++) { // iterate from back to front, to ensure non-multi-arguments in the front and back are given preference
                 size_t flat_idx = arguments_flat.size() - arg_j;
                 if (flat_idx < arguments_flat.size() && flat_idx >= arg_i) {
                     if (arg_entries[arg_entries.size() - arg_j]->_is_multi_argument) {

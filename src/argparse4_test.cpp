@@ -5,9 +5,9 @@
  */
 #include <iostream>
 
-#include "argparse4.h"
+#include "argparse/argparse.hpp"
 
-using namespace std;
+//using namespace std;
 
 enum Color {
     RED,
@@ -71,7 +71,7 @@ struct MyArgs : public argparse4::Args {
 int main(int argc, char* argv[]) {
     MyArgs args(argc, argv);
 
-    cout << "beta is: " << (args.beta.has_value()? std::to_string(args.beta.value()) : "nullptr") << endl;
+    std::cout << "beta is: " << (args.beta.has_value()? std::to_string(args.beta.value()) : "nullptr") << std::endl;
 
     if (args.verbose)
         args.print();

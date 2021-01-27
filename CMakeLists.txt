@@ -35,5 +35,6 @@ if(ARGPARSE_BUILD_EXAMPLES)
 endif()
 
 if(ARGPARSE_BUILD_TESTS)
+    ENABLE_TESTING()
     add_subdirectory(tests)
 endif()

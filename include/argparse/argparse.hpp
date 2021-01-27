@@ -76,6 +76,8 @@ namespace argparse {
         std::stringstream ss(str);
         std::string key;
         while (std::getline(ss, key, ',')) {
+            if (!key.empty() && key.back() == '\0')
+                key.pop_back(); // last variables contain a '\0', which is unexpected when comparing to raw string, e.g. value == "test" will fail when the last character is '\0'. Therefore we can remove it
             splits.emplace_back(std::move(key));
         }
         return splits;
@@ -99,7 +101,7 @@ namespace argparse {
     template<> inline unsigned int get(const std::string &v) { return std::stoul(v); }
     template<> inline unsigned long get(const std::string &v) { return std::stoul(v); }
 
-    template<typename T> inline T get(const std::string &v) { // "if constexpr" are only supported from c++17, so use this to distuingish vectors.
+    template<typename T> inline T get(const std::string &v) { // remaining types
         if constexpr (is_vector<T>::value) {
             const std::vector<std::string> splitted = split(v);
             T res(splitted.size());

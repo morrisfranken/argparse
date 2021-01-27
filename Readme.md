@@ -3,7 +3,7 @@ A lightweight header-only library for parsing command line arguments in an elega
 
 ## Usage
 ```c++
-#include "argparse.h"
+#include "argparse/argparse.hpp"
 
 struct MyArgs : public argparse::Args {
     std::string &src_path           = arg("Source path");

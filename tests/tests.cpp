@@ -43,6 +43,52 @@ std::pair<int, char**> get_argc_argv(std::string &str) {
     return {(int)splits.size(), argv};
 }
 
+template <typename T> T test_args(std::string command) {
+    const auto &[argc, argv] = get_argc_argv(command);
+    T args(argc, argv);
+    args.print();
+    return args;
+}
+
+void TEST_MULTI() {
+    struct Args : public argparse::Args {
+        std::string &A = arg("Source path");
+        std::vector<std::string> &B = arg("Variable paths").multi_argument();
+        std::string &C = arg("Last");
+
+        CONSTRUCTOR(Args);
+    };
+
+    {
+        Args args = test_args<Args>("argparse_test a b b b c");
+
+        assert(args.A == "a");
+        assert(args.B.size() == 3 && args.B[0] == "b" && args.B[2] == "b");
+        assert(args.C == "c");
+    }
+}
+
+void TEST_MULTI2() {
+    struct Args : public argparse::Args {
+        std::string& A              = arg("Source path");
+        std::vector<std::string>& B = arg("Variable paths").multi_argument();
+        std::string& C              = arg("Last");
+        std::vector<std::string>& v = kwarg("variable", "Variable paths").multi_argument();
+        bool& verbose               = flag("verbose", "A flag to toggle verbose");
+
+        CONSTRUCTOR(Args);
+    };
+
+    {
+        Args args = test_args<Args>("argparse_test a b b b --variable v v v --verbose c");
+
+        assert(args.A == "a");
+        assert(args.B.size() == 3 && args.B[0] == "b" && args.B[2] == "b");
+        assert(args.C == "c");
+        assert(args.v.size() == 3 && args.v[0] == "v" && args.v[2] == "v");
+    }
+}
+
 void TEST_ALL() {
     struct Args : public argparse::Args {
         std::string& src_path           = arg("Source path");
@@ -56,7 +102,7 @@ void TEST_ALL() {
         Custom& custom                  = kwarg("c,custom", "A custom class");                                // Custom classes that support a std::string constructor
         std::vector<int>& numbers       = kwarg("n,numbers", "An optional vector of integers").set_default<std::vector<int>>({1,2});
         std::vector<int>& numbers2      = kwarg("numbers2", "An optional vector of integers").set_default("3,4,5");
-        std::vector<std::string> &files = kwarg("files", "mutliple arguments").multi_argument();
+        std::vector<std::string> &files = kwarg("files", "multiple arguments").multi_argument();
         std::optional<float>& opt       = kwarg("o,optional", "An optional float parameter");
         Color &color                    = kwarg("c,color", "An Enum input");
         bool& flag1                     = flag("f,flag", "A test flag");
@@ -66,9 +112,8 @@ void TEST_ALL() {
     };
 
     {
-        std::string command = "argparse_test source_path destination -k=5 --alpha=1 --beta 3.3 --gamma --numbers=1,2,3,4,5 --numbers2 6,7,8 --files f1 f2 f3 --custom hello_custom --optional 1 -c red --verbose";
-        const auto &[argc, argv] = get_argc_argv(command);
-        Args args(argc, argv);
+        Args args = test_args<Args>("argparse_test source_path destination -k=5 --alpha=1 --beta 3.3 --gamma --numbers=1,2,3,4,5 --numbers2 6,7,8 --files f1 f2 f3 --custom hello_custom --optional 1 -c red --verbose");
+
         assert(args.src_path == "source_path");
         assert(args.dst_path == "destination");
         assert(args.k == 5);
@@ -87,9 +132,8 @@ void TEST_ALL() {
     }
 
     {
-        std::string command = "argparse_test source_path -k --files f1 f2 f3 --custom hello_custom --optional 1 -c red --verbose";
-        const auto &[argc, argv] = get_argc_argv(command);
-        Args args(argc, argv);
+        Args args = test_args<Args>("argparse_test source_path -k --files --custom hello_custom --optional 1 -c red --verbose");
+
         assert(args.src_path == "source_path");
         assert(args.dst_path == "world");
         assert(args.k == 3);
@@ -99,7 +143,7 @@ void TEST_ALL() {
         assert(args.gamma == nullptr);
         assert(args.numbers.size() == 2 && args.numbers[1] == 2);
         assert(args.numbers2.size() == 3 && args.numbers2[2] == 5);
-        assert(args.files.size() == 3 && args.files[2] == "f3");
+        assert(args.files.empty());
         assert(std::abs(args.opt.value() - 1.0f) < 0.0001);
         assert(args.custom.message == "hello_custom");
         assert(args.color == RED);
@@ -111,5 +155,7 @@ void TEST_ALL() {
 
 int main(int argc, char* argv[]) {
     TEST_ALL();
+    TEST_MULTI();
+    TEST_MULTI2();
     return 0;
 }

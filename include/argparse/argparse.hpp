@@ -24,13 +24,13 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 #include <cctype>              // for isdigit, tolower
-#include <ext/alloc_traits.h>  // for __alloc_traits<>::value_type
+//#include <ext/alloc_traits.h>  // for __alloc_traits<>::value_type
+#include <sstream>
 #include <cstdlib>             // for size_t, exit
 #include <algorithm>           // for max, transform, copy, min
 #include <iomanip>             // for operator<<, setw
 #include <iostream>            // for operator<<, basic_ostream, endl, ostream
 #include <iterator>            // for ostream_iterator
-#include <magic_enum.hpp>      // for enum_entries
 #include <map>                 // for operator!=, map, _Rb_tree_iterator
 #include <memory>              // for allocator, shared_ptr, __shared_ptr_ac...
 #include <optional>            // for optional, nullopt
@@ -39,6 +39,11 @@
 #include <type_traits>         // for declval, false_type, true_type, is_enum
 #include <utility>             // for move, pair
 #include <vector>              // for vector
+
+#if __has_include("magic_enum.hpp")
+#include <magic_enum.hpp>      // for enum_entries
+#define HAS_MAGIC_ENUM
+#endif
 
 #define ARGPARSE_VERSION 4
 
@@ -60,7 +65,11 @@ namespace argparse {
     template <typename T> struct has_ostream_operator<T, decltype(void(std::declval<std::ostream&>() << std::declval<const T&>()))> : std::true_type {};
 
     std::string bold(const std::string& input_str) {
+#ifdef _WIN32
+        return input_str; // no bold for windows
+#else
         return "\e[1m" + input_str + "\e[0m";
+#endif
     }
 
     template<typename T> std::string toString(const T &v) {
@@ -115,6 +124,7 @@ namespace argparse {
         } else if constexpr (is_optional<T>::value) {
             return get<typename T::value_type>(v);
         } else if constexpr (std::is_enum<T>::value) {  // case-insensitive enum conversion
+#ifdef HAS_MAGIC_ENUM
             constexpr auto& enum_entries = magic_enum::enum_entries<T>();
             const std::string lower_str = to_lower(v);
             for (const auto &[value, name] : enum_entries) {
@@ -126,6 +136,9 @@ namespace argparse {
                 error += (i==0? "" : ", ") + to_lower(enum_entries[i].second);
             error += "]";
             throw std::runtime_error(error);
+#else
+            throw std::runtime_error("Enum not supported, please install magic_enum (https://github.com/Neargye/magic_enum)");
+#endif
         } else {
             return T(v);
         }
@@ -154,11 +167,15 @@ namespace argparse {
 
         [[nodiscard]] std::string get_allowed_entries() const override {
             std::stringstream ss;
+
+#ifdef HAS_MAGIC_ENUM
             if constexpr (std::is_enum<T>::value) {
                 for (const auto &[value, name] : magic_enum::enum_entries<T>()) {
                     ss << to_lower(name) << ", ";
                 }
             }
+#endif
+
             return ss.str();
         }
     };

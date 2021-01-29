@@ -5,16 +5,11 @@
  */
 #include <iostream>
 #include <cstring>
+#include <assert.h>
 
 #include "argparse/argparse.hpp"
 
 using namespace std;
-
-enum Color {
-    RED,
-    BLUE,
-    GREEN,
-};
 
 struct Custom {
     std::string message;
@@ -89,6 +84,30 @@ void TEST_MULTI2() {
     }
 }
 
+void TEST_ENUM() {
+    enum Color {
+        RED,
+        BLUE,
+        GREEN,
+    };
+
+    struct Args : public argparse::Args {
+        Color& color  = kwarg("c,color", "An Enum input");
+        Color& color2 = kwarg("color2", "An Enum input").set_default(RED);
+        Color& color3 = kwarg("color2", "An Enum input", "green");
+
+        CONSTRUCTOR(Args);
+    };
+
+    {
+        Args args = test_args<Args>("argparse_test --color blue");
+
+        assert(args.color == BLUE);
+        assert(args.color2 == RED);
+        assert(args.color3 == GREEN);
+    }
+}
+
 void TEST_ALL() {
     struct Args : public argparse::Args {
         std::string& src_path           = arg("Source path");
@@ -104,7 +123,6 @@ void TEST_ALL() {
         std::vector<int>& numbers2      = kwarg("numbers2", "An optional vector of integers").set_default("3,4,5");
         std::vector<std::string> &files = kwarg("files", "multiple arguments").multi_argument();
         std::optional<float>& opt       = kwarg("o,optional", "An optional float parameter");
-        Color &color                    = kwarg("c,color", "An Enum input");
         bool& flag1                     = flag("f,flag", "A test flag");
         bool& verbose                   = flag("v,verbose", "A flag to toggle verbose");
 
@@ -112,7 +130,7 @@ void TEST_ALL() {
     };
 
     {
-        Args args = test_args<Args>("argparse_test source_path destination -k=5 --alpha=1 --beta 3.3 --gamma --numbers=1,2,3,4,5 --numbers2 6,7,8 --files f1 f2 f3 --custom hello_custom --optional 1 -c red --verbose");
+        Args args = test_args<Args>("argparse_test source_path destination -k=5 --alpha=1 --beta 3.3 --gamma --numbers=1,2,3,4,5 --numbers2 6,7,8 --files f1 f2 f3 --custom hello_custom --optional 1 --verbose");
 
         assert(args.src_path == "source_path");
         assert(args.dst_path == "destination");
@@ -126,13 +144,12 @@ void TEST_ALL() {
         assert(args.files.size() == 3 && args.files[2] == "f3");
         assert(std::abs(args.opt.value() - 1.0f) < 0.0001);
         assert(args.custom.message == "hello_custom");
-        assert(args.color == RED);
         assert(args.flag1 == false);
         assert(args.verbose);
     }
 
     {
-        Args args = test_args<Args>("argparse_test source_path -k --files --custom hello_custom --optional 1 -c red --verbose");
+        Args args = test_args<Args>("argparse_test source_path -k --files --custom hello_custom --optional 1 --verbose");
 
         assert(args.src_path == "source_path");
         assert(args.dst_path == "world");
@@ -146,7 +163,6 @@ void TEST_ALL() {
         assert(args.files.empty());
         assert(std::abs(args.opt.value() - 1.0f) < 0.0001);
         assert(args.custom.message == "hello_custom");
-        assert(args.color == RED);
         assert(args.flag1 == false);
         assert(args.verbose);
     }
@@ -157,5 +173,11 @@ int main(int argc, char* argv[]) {
     TEST_ALL();
     TEST_MULTI();
     TEST_MULTI2();
+#ifdef HAS_MAGIC_ENUM
+    TEST_ENUM();
+#else
+    std::cout << "Magic Enum not installed in this system, therefor native enum support disabled" << std::endl;
+#endif
+
     return 0;
 }

@@ -3,12 +3,6 @@
 #include <iostream>
 #include "argparse/argparse.hpp"
 
-enum Color {
-    RED,
-    BLUE,
-    GREEN,
-};
-
 struct Custom {
     std::string message;
 
@@ -26,7 +20,6 @@ struct MyArgs : public argparse::Args {
     std::optional<float> &beta      = kwarg("b,beta", "An optional float parameter with std::optional return");
     std::vector<int> &numbers       = kwarg("n,numbers", "An int vector, comma separated");
     std::vector<std::string> &files = kwarg("files", "multiple arguments").multi_argument();
-    Color &color                    = kwarg("c,color", "An Enum input");
     bool &verbose                   = flag("v,verbose", "A flag to toggle verbose");
 
     void welcome() {

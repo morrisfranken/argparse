@@ -94,13 +94,13 @@ void TEST_ENUM() {
     struct Args : public argparse::Args {
         Color& color  = kwarg("c,color", "An Enum input");
         Color& color2 = kwarg("color2", "An Enum input").set_default(RED);
-        Color& color3 = kwarg("color2", "An Enum input", "green");
+        Color& color3 = kwarg("color3", "An Enum input", "green");
 
         CONSTRUCTOR(Args);
     };
 
     {
-        Args args = test_args<Args>("argparse_test --color blue");
+        Args args = test_args<Args>("argparse_test --color blue --color3");
 
         assert(args.color == BLUE);
         assert(args.color2 == RED);

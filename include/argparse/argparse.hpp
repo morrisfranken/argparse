@@ -441,7 +441,8 @@ namespace argparse {
 
             for (const auto &entry : all_entries) {
                 if (!entry->error.empty()) {
-                    throw std::runtime_error(entry->error);
+                    std::cerr << entry->error << std::endl;
+                    exit(-1);       // in case you would rather have it throw on error: throw std::runtime_error(entry->error);
                 }
             }
         }

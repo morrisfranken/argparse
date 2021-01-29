@@ -30,6 +30,17 @@ if(ARGPARSE_BUILD_EXAMPLES)
     target_include_directories(argparse_example PUBLIC include)
     target_link_libraries(argparse_example PUBLIC morrisfranken::argparse)
 
+    add_executable(hello_world examples/hello_world.cpp)
+    target_include_directories(hello_world PUBLIC include)
+    target_link_libraries(hello_world PUBLIC morrisfranken::argparse)
+
+    add_executable(multiple_arguments examples/multiple_arguments.cpp)
+    target_include_directories(multiple_arguments PUBLIC include)
+    target_link_libraries(multiple_arguments PUBLIC morrisfranken::argparse)
+
+    add_executable(enums examples/enums.cpp)
+    target_include_directories(enums PUBLIC include)
+    target_link_libraries(enums PUBLIC morrisfranken::argparse)
     #target_compile_options(argparse_test PUBLIC -ftime-report)
     #target_precompile_headers(argparse_test PUBLIC include/argparse.h) --> should be enabled on release
 endif()

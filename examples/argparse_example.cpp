@@ -1,13 +1,7 @@
 /* @author: Morris Franken
- * This argparse version relies on copy elision to make sure the same variable is used
- * STATUS: not working, copy elision not forced for trivial copyable types.
- * Awaiting http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2025r1.html
  */
 #include <iostream>
-
 #include "argparse/argparse.hpp"
-
-using namespace std;
 
 enum Color {
     RED,
@@ -34,6 +28,10 @@ struct MyArgs : public argparse::Args {
     std::vector<std::string> &files = kwarg("files", "multiple arguments").multi_argument();
     Color &color                    = kwarg("c,color", "An Enum input");
     bool &verbose                   = flag("v,verbose", "A flag to toggle verbose");
+
+    void welcome() {
+        std::cout << "Welcome to Argparse" << std::endl;
+    }
 
     CONSTRUCTOR(MyArgs);
 };

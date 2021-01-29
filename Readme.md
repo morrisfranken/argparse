@@ -170,7 +170,7 @@ $ ./argparse_test --help
 ```
 
 # Custom classes
-When using a custom class, Argparse will try to create the class using the constructor with an `std::string` as paramters
+When using a custom class, Argparse will try to create the class using the constructor with an `std::string` as paramters. See `examples/argparse_example.cpp` for an example using a custom class.
 
 
 # Examples and help flag

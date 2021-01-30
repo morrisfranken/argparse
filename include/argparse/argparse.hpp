@@ -50,8 +50,6 @@
 namespace argparse {
     using std::cout, std::cerr, std::endl, std::setw, std::size_t;
 
-#define CONSTRUCTOR(T) T(int argc, char* argv[]) : argparse::Args(argc, argv) {validate();}
-
     template<typename T> struct is_vector : public std::false_type {};
     template<typename T, typename A> struct is_vector<std::vector<T, A>> : public std::true_type {};
 
@@ -290,10 +288,6 @@ namespace argparse {
     public:
         virtual ~Args() = default;
 
-        Args(int argc, char *argv[]) : program_name(argv[0]) {
-            params = std::vector<std::string>(argv + 1, argv + argc);
-        }
-
         /* Add a positional argument, the order in which it is defined equals the order in which they are being read.
          * help : Description of the variable
          *
@@ -351,7 +345,22 @@ namespace argparse {
             }
         }
 
-        void parse() {
+        void validate() {
+            for (const auto &entry : all_entries) {
+                if (!entry->error.empty()) {
+                    std::cerr << entry->error << std::endl;
+                    exit(-1);       // in case you would rather have it throw on error: throw std::runtime_error(entry->error);
+                }
+            }
+        }
+
+        /* parse all parameters and also check for the help_flag which was set in this constructor
+         * Upon error, it will print the error and exit immediately.
+         */
+        void parse(int argc, char *argv[]) {
+            program_name = argv[0];
+            params = std::vector<std::string>(argv + 1, argv + argc);
+
             bool& _help = flag("help", "print help");
 
             auto is_value = [&](const size_t &i) -> bool {
@@ -448,20 +457,8 @@ namespace argparse {
                 help();
                 exit(0);
             }
-        }
 
-        /* Validate all parameters and also check for the help_flag which was set in this constructor
-         * Upon error, it will print the error and exit immediately.
-         */
-        void validate() {
-            parse();
-
-            for (const auto &entry : all_entries) {
-                if (!entry->error.empty()) {
-                    std::cerr << entry->error << std::endl;
-                    exit(-1);       // in case you would rather have it throw on error: throw std::runtime_error(entry->error);
-                }
-            }
+            validate();
         }
 
         void print() const {
@@ -471,4 +468,10 @@ namespace argparse {
             }
         }
     };
+
+    template <typename T> T parse(int argc, char* argv[]) {
+        T args = T();
+        args.parse(argc, argv);
+        return args;
+    }
 }

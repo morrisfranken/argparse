@@ -40,7 +40,7 @@ std::pair<int, char**> get_argc_argv(std::string &str) {
 
 template <typename T> T test_args(std::string command) {
     const auto &[argc, argv] = get_argc_argv(command);
-    T args(argc, argv);
+    auto args = argparse::parse<T>(argc, argv);
     args.print();
     return args;
 }
@@ -50,8 +50,6 @@ void TEST_MULTI() {
         std::string &A = arg("Source path");
         std::vector<std::string> &B = arg("Variable paths").multi_argument();
         std::string &C = arg("Last");
-
-        CONSTRUCTOR(Args);
     };
 
     {
@@ -70,8 +68,6 @@ void TEST_MULTI2() {
         std::string& C              = arg("Last");
         std::vector<std::string>& v = kwarg("variable", "Variable paths").multi_argument();
         bool& verbose               = flag("verbose", "A flag to toggle verbose");
-
-        CONSTRUCTOR(Args);
     };
 
     {
@@ -95,8 +91,6 @@ void TEST_ENUM() {
         Color& color  = kwarg("c,color", "An Enum input");
         Color& color2 = kwarg("color2", "An Enum input").set_default(RED);
         Color& color3 = kwarg("color3", "An Enum input", "green");
-
-        CONSTRUCTOR(Args);
     };
 
     {
@@ -125,8 +119,6 @@ void TEST_ALL() {
         std::optional<float>& opt       = kwarg("o,optional", "An optional float parameter");
         bool& flag1                     = flag("f,flag", "A test flag");
         bool& verbose                   = flag("v,verbose", "A flag to toggle verbose");
-
-        CONSTRUCTOR(Args);
     };
 
     {

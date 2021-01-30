@@ -15,12 +15,10 @@ struct Custom {
 
 struct MyArgs : public argparse::Args {
     Custom &custom                 = kwarg("c,custom", "A custom class");
-
-    CONSTRUCTOR(MyArgs);
 };
 
 int main(int argc, char* argv[]) {
-    MyArgs args(argc, argv);
+    auto args = argparse::parse<MyArgs>(argc, argv);
     args.print();
 
     return 0;

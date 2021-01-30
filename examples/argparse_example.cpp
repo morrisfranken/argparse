@@ -25,12 +25,10 @@ struct MyArgs : public argparse::Args {
     void welcome() {
         std::cout << "Welcome to Argparse" << std::endl;
     }
-
-    CONSTRUCTOR(MyArgs);
 };
 
 int main(int argc, char* argv[]) {
-    MyArgs args(argc, argv);
+    auto args = argparse::parse<MyArgs>(argc, argv);
 
     if (args.verbose)
         args.print();

@@ -10,13 +10,11 @@ struct MyArgs : public argparse::Args {
     int &k                          = kwarg("k", "A keyworded integer value");
     float &alpha                    = kwarg("a,alpha", "An optional float value").set_default(0.5f);
     bool &verbose                   = flag("v,verbose", "A flag to toggle verbose");
-
-    CONSTRUCTOR(MyArgs);
 };
 
 
 int main(int argc, char* argv[]) {
-    MyArgs args(argc, argv);
+    auto args = argparse::parse<MyArgs>(argc, argv);
 
     if (args.verbose)
         args.print();       // prints all variables 
@@ -146,12 +144,10 @@ enum Color {
 
 struct MyArgs : public argparse::Args {
     Color &color                    = kwarg("c,color", "An Enum input");
-
-    CONSTRUCTOR(MyArgs);
 };
 
 int main(int argc, char* argv[]) {
-    MyArgs args(argc, argv);
+    auto args = argparse::parse<MyArgs>(argc, argv);
     args.print();      // prints all variables
 
     return 0;
@@ -194,21 +190,6 @@ Options:
 ```
 You may notice the `Welcome to Argparse` message, this message was created by overwriting the `welcome` function (see `examples/argparse_example.cpp`)
 
-In the example, the `args.print()` function is executed when the `--verbose` flag is present. This will list all the captured input arguments.
-
-```
-$ ./argparse_example source destination -k=4 --alpha=0.2 -c blue --numbers=4,5,6 --verbose --files hello.txt source.cpp
-    arg_0(Source ...) : source
-    arg_1(Destina...) : destination
-                   -k : 4
-           -a,--alpha : 0.2
-            -b,--beta : none
-         -n,--numbers : 4,5,6
-              --files : hello.txt,source.cpp
-           -c,--color : blue
-         -v,--verbose : true
-               --help : false
-```
 In case it fails to parse the input string, it will display an error and exit. E.g. here we'll set `k` to be `notanumber` 
 ```
 $ ./argparse_test src dst -k notanumber

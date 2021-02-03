@@ -14,7 +14,7 @@ struct MyArgs : public argparse::Args {
 
 
 int main(int argc, char* argv[]) {
-    auto args = argparse::parse<MyArgs>(argc, argv);
+    MyArgs args = argparse::parse<MyArgs>(argc, argv);
 
     if (args.verbose)
         args.print();       // prints all variables 
@@ -53,12 +53,6 @@ Argparse supports the following syntax
 ```
 Where on the last 2 lines, `a` and `b` are considered `flags`, while `c` is considered a `kwarg` and is set to `value`. In addition, an argument may be a comma-separated vector.
 
-Argparse is also not tied to a specific order of positional arguments and key-worded arguments. The folowing are both valid:
-```c++
-$ ./argparse_test arg0 --verbose
-$ ./argparse_test --verbose arg0 
-```
-
 # Default values
 `Args` and `Kwargs` may have a default value, which will be used when the argument is not present on the commandline. These can be passed through the `set_default` function, it accepts either a string or the type of the parameter itself
 ```c++
@@ -72,9 +66,9 @@ std::vector<int> &values        = kwarg("v,values", "An optional vector of integ
 # Implicit values
 `Kwargs` may have an implicit value, meaning that when the argument is present on the commandline, but no value is set, it will use the implicit value if set. Implicit values passed as string.
 ```c++
-int &k                              = kwarg("k", "An implicit int parameter", /*implicit*/"3");
-float &alpha                        = kwarg("a,alpha", "A implicit float parameter", /*implicit*/"0.5");
-std::vector<int> &numbers           = kwarg("n,numbers", "A implicit int vector", /*implicit*/"1,2,3");
+int &k                          = kwarg("k", "An implicit int parameter", /*implicit*/"3");
+float &alpha                    = kwarg("a,alpha", "A implicit float parameter", /*implicit*/"0.5");
+std::vector<int> &numbers       = kwarg("n,numbers", "A implicit int vector", /*implicit*/"1,2,3");
 ```
 Examples
 ```
@@ -143,7 +137,7 @@ enum Color {
 };
 
 struct MyArgs : public argparse::Args {
-    Color &color                    = kwarg("c,color", "An Enum input");
+    Color &color = kwarg("c,color", "An Enum input");
 };
 
 int main(int argc, char* argv[]) {
@@ -197,7 +191,7 @@ Invalid argument, could not convert "notanumber" for -k (An implicit int paramet
 ```
 
 # Installing
-Since it is an header-only library, you can simply copy the `include/argparse.h` file in to your own project. 
+Since it is an header-only library, you can simply copy the `include/argparse.hpp` file in to your own project. 
 
 Alternatively, you can build&install it using the following commands
 ```
@@ -210,6 +204,8 @@ sudo make install
 It can be included in your cmake project as follows:
 ```
 find_package(argparse REQUIRED)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC argparse::argparse)
 ``` 
 
 # FAQ

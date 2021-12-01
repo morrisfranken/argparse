@@ -92,7 +92,7 @@ namespace argparse {
 
     template <typename T> std::string to_lower(const T &str_) { // both std::string and std::basic_string_view<char> (for magic_enum) are using to_lower
         std::string str(str_.size(), '\0');
-        std::transform(str_.begin(), str_.end(), str.begin(), tolower);
+        std::transform(str_.begin(), str_.end(), str.begin(), ::tolower);
         return str;
     }
 

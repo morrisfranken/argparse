@@ -130,7 +130,7 @@ namespace argparse {
                     return value;
             }
             std::string error = "enum is only accepting [";
-            for (int i = 0; i < enum_entries.size(); i++)
+            for (size_t i = 0; i < enum_entries.size(); i++)
                 error += (i==0? "" : ", ") + to_lower(enum_entries[i].second);
             error += "]";
             throw std::runtime_error(error);
@@ -357,7 +357,7 @@ namespace argparse {
         /* parse all parameters and also check for the help_flag which was set in this constructor
          * Upon error, it will print the error and exit immediately.
          */
-        void parse(int argc, char *argv[]) {
+        void parse(int argc, const char *argv[]) {
             program_name = argv[0];
             params = std::vector<std::string>(argv + 1, argv + argc);
 
@@ -469,7 +469,7 @@ namespace argparse {
         }
     };
 
-    template <typename T> T parse(int argc, char* argv[]) {
+    template <typename T> T parse(int argc, const char* argv[]) {
         T args = T();
         args.parse(argc, argv);
         return args;

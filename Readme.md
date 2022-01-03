@@ -64,7 +64,7 @@ std::vector<int> &values        = kwarg("v,values", "An optional vector of integ
 ```
 
 # Implicit values
-`Kwargs` may have an implicit value, meaning that when the argument is present on the commandline, but no value is set, it will use the implicit value if set. Implicit values passed as string.
+`Kwargs` may have an implicit value, meaning that when the argument is present on the commandline, but no value is set, it will use the implicit value. Implicit values passed as string.
 ```c++
 int &k                          = kwarg("k", "An implicit int parameter", /*implicit*/"3");
 float &alpha                    = kwarg("a,alpha", "A implicit float parameter", /*implicit*/"0.5");
@@ -87,7 +87,7 @@ Argparse supports `std::vector`. There are 2 ways in which the vector can be rea
 ```c++
 std::vector<int> &numbers           = kwarg("n,numbers", "An int vector");
 std::vector<std::string> &tags      = kwarg("t,tags", "A word vector");
-std::vector<std::string> &files     = kwarg("files", "mutliple arguments").multi_argument();
+std::vector<std::string> &files     = kwarg("files", "multiple arguments").multi_argument();
 ```
 Example usage:
 ```bash
@@ -96,9 +96,9 @@ $ argparse_test --numbers=3,4,5,6
 $ argparse_test --tags="hello"
 $ argparse_test --tags="hello, world"
 $ argparse_test --files a b c
-$ argparse_test --files ./*               # files will now contian a list of the files in the currect direcotry
+$ argparse_test --files ./*               # files will now contain a list of the files in the current directory
 ```
-In case there ar other positional arguments, Argparse will make sure that they are correctly assigned. For example, consider the following examlpe:
+In case there are other positional arguments, Argparse will make sure that they are correctly assigned. For example, consider the following example:
 ```c++
 std::string &A = arg("Source path");
 std::vector<std::string> &B = arg("Variable paths").multi_argument();
@@ -112,7 +112,7 @@ Argparse will assign the non-multiple arguments first, such that `A=a`, `C=c` an
 
 
 # Pointers and Optionals
-In situations where setting a default value is not sufficient, Argparse supports `std::optional`, and (smart)pointers, these can be used in situations where you'd like to distinguish whether an argument was set by the user, or when a default value was used. When declaring a raw pointer or a `std::shared_ptr`, the default value for these is automatically set to `nullptr` (or `std::nullopt` for `std::optional`). 
+In situations where setting a default value is not sufficient, Argparse supports `std::optional`, and (smart)pointers, these can be used in situations where you'd like to distinguish whether an argument was set by the user. When declaring a raw pointer or a `std::shared_ptr`, the default value for these are automatically set to `nullptr` (or `std::nullopt` for `std::optional`). 
 ```c++
 std::shared_ptr<float> &alpha   = kwarg("a,alpha", "An optional smart-pointer float parameter");
 std::optional<float> &beta      = kwarg("b,beta", "An optional float parameter with std::optional return");
@@ -127,7 +127,7 @@ $ ./argparse_test --alpha 0.4
 ```
 
 # Enums
-On of the reasons for creating this library was to nativly support Enums using [magic_enum](https://github.com/Neargye/magic_enum), if it is found on the system, Argparse supports automatic conversion from commandline to `enum`. E.g. consider th following example
+On of the reasons for creating this library was to natively support Enums using [magic_enum](https://github.com/Neargye/magic_enum), if it is found on the system, Argparse supports automatic conversion from commandline to `enum`. E.g. consider the following example
 
 ```c++
 enum Color {
@@ -160,7 +160,7 @@ $ ./argparse_test --help
 ```
 
 # Custom classes
-When using a custom class, Argparse will try to create the class using the constructor with an `std::string` as paramters. See `examples/argparse_example.cpp` for an example using a custom class.
+When using a custom class, Argparse will try to create the class using the constructor with an `std::string` as parameters. See `examples/argparse_example.cpp` for an example using a custom class.
 
 
 # Examples and help flag
@@ -191,7 +191,7 @@ Invalid argument, could not convert "notanumber" for -k (An implicit int paramet
 ```
 
 # Installing
-Since it is an header-only library, you can simply copy the `include/argparse.hpp` file in to your own project. 
+Since it is a header-only library, you can simply copy the `include/argparse.hpp` file in to your own project. 
 
 Alternatively, you can build&install it using the following commands
 ```
@@ -211,4 +211,4 @@ target_link_libraries(${PROJECT_NAME} PUBLIC argparse::argparse)
 # FAQ
  - **Why references?**
    
-    This is a good question, in order to support implicit parameters, multiple parameters and being invariant to the order of input, Argparse needs to know all the possible input arguments before assinging them. And since the goal of this library is to define a variable only once I needed a way to modify the contents of the returned value after it has seen all the arguments. Returning by reference allows this to be possible. In the future when guaranteed copy-elision is implemented for primitive types, the reference can be removed.  
+    This is a good question, in order to support implicit parameters, multiple parameters and being invariant to the order of input, Argparse needs to know all the possible input arguments before assigning them. And since the goal of this library is to define a variable only once I needed a way to modify the contents of the returned value after it has seen all the arguments. Returning by reference allows this to be possible. In the future when guaranteed copy-elision is implemented for primitive types, the reference can be removed.  

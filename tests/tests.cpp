@@ -4,8 +4,7 @@
  * Awaiting http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2025r1.html
  */
 #include <iostream>
-#include <cstring>
-#include <assert.h>
+#include <cassert>
 
 #include "argparse/argparse.hpp"
 
@@ -168,7 +167,7 @@ int main(int argc, char* argv[]) {
 #ifdef HAS_MAGIC_ENUM
     TEST_ENUM();
 #else
-    std::cout << "Magic Enum not installed in this system, therefor native enum support disabled" << std::endl;
+    std::cout << "Magic Enum not installed in this system, therefore native enum support disabled" << std::endl;
 #endif
 
     return 0;

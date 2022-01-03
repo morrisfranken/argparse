@@ -357,7 +357,7 @@ namespace argparse {
         /* parse all parameters and also check for the help_flag which was set in this constructor
          * Upon error, it will print the error and exit immediately.
          */
-        void parse(int argc, char* const *argv) {
+        void parse(int argc, const char* const *argv) {
             program_name = argv[0];
             params = std::vector<std::string>(argv + 1, argv + argc);
 
@@ -469,7 +469,7 @@ namespace argparse {
         }
     };
 
-    template <typename T> T parse(int argc, char* const *argv) {
+    template <typename T> T parse(int argc, const char* const *argv) {
         T args = T();
         args.parse(argc, argv);
         return args;

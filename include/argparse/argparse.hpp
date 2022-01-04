@@ -345,11 +345,15 @@ namespace argparse {
             }
         }
 
-        void validate() {
+        void validate(const bool &raise_on_error) {
             for (const auto &entry : all_entries) {
                 if (!entry->error.empty()) {
-                    std::cerr << entry->error << std::endl;
-                    exit(-1);       // in case you would rather have it throw on error: throw std::runtime_error(entry->error);
+                    if (raise_on_error) {
+                        throw std::runtime_error(entry->error);
+                    } else {
+                        std::cerr << entry->error << std::endl;
+                        exit(-1);
+                    }
                 }
             }
         }
@@ -357,7 +361,7 @@ namespace argparse {
         /* parse all parameters and also check for the help_flag which was set in this constructor
          * Upon error, it will print the error and exit immediately.
          */
-        void parse(int argc, const char* const *argv) {
+        void parse(int argc, const char* const *argv, const bool &raise_on_error) {
             program_name = argv[0];
             params = std::vector<std::string>(argv + 1, argv + argc);
 
@@ -458,7 +462,7 @@ namespace argparse {
                 exit(0);
             }
 
-            validate();
+            validate(raise_on_error);
         }
 
         void print() const {
@@ -469,9 +473,9 @@ namespace argparse {
         }
     };
 
-    template <typename T> T parse(int argc, const char* const *argv) {
+    template <typename T> T parse(int argc, const char* const *argv, const bool &raise_on_error=false) {
         T args = T();
-        args.parse(argc, argv);
+        args.parse(argc, argv, raise_on_error);
         return args;
     }
 }

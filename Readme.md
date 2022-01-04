@@ -6,10 +6,10 @@ A lightweight header-only library for parsing command line arguments in an elega
 #include "argparse/argparse.hpp"
 
 struct MyArgs : public argparse::Args {
-    std::string &src_path           = arg("a positional string argument");
-    int &k                          = kwarg("k", "A keyworded integer value");
-    float &alpha                    = kwarg("a,alpha", "An optional float value").set_default(0.5f);
-    bool &verbose                   = flag("v,verbose", "A flag to toggle verbose");
+    std::string &src_path = arg("a positional string argument");
+    int &k                = kwarg("k", "A keyworded integer value");
+    float &alpha          = kwarg("a,alpha", "An optional float value").set_default(0.5f);
+    bool &verbose         = flag("v,verbose", "A flag to toggle verbose");
 };
 
 
@@ -127,7 +127,7 @@ $ ./argparse_test --alpha 0.4
 ```
 
 # Enums
-On of the reasons for creating this library was to natively support Enums using [magic_enum](https://github.com/Neargye/magic_enum), if it is found on the system, Argparse supports automatic conversion from commandline to `enum`. E.g. consider the following example
+One of the reasons for creating this library was to natively support Enums using [magic_enum](https://github.com/Neargye/magic_enum), if it is found on the system, Argparse supports automatic conversion from commandline to `enum`. E.g. consider the following example
 
 ```c++
 enum Color {
@@ -163,6 +163,19 @@ $ ./argparse_test --help
 When using a custom class, Argparse will try to create the class using the constructor with an `std::string` as parameters. See `examples/argparse_example.cpp` for an example using a custom class.
 
 
+# Raise exception on error
+When invalid arguments are passed to the commandline, argparse will simply print the error and exit the program by default. However, you can choose to let argparse throw a catchable exception instead by setting the `raise_on_error` flag to `true` on the `parse` function. For example:
+```c++
+int main(int argc, char* argv[]) {
+     try {
+        auto args = argparse::parse<MyArgs>(argc, argv, /*raise_on_error*/ true);
+     } catch (const std::runtime_error &e) {
+        std::cerr << "failed to parse arguments: " << e.what() << std::endl;
+        return -1;
+     }
+    return 0;
+}
+```
 # Examples and help flag
 The `--help` is automatically added in ArgParse. Consider the following example usage when executing `argparse_test` (int `examples/argparse_example.cpp`) 
 ```

@@ -41,7 +41,7 @@ Argparse distinguishes 3 different types of arguments:
 | `kwarg(key,help,implicit)`  | keyworded-arguments that require a key and a value, e.g. `--variable 0.5`.  |
 | `flag(key,help)`   | arguments that do not take any value, but are used to set a certain flag to true (e.g. `--verbose`) |
 
-Argparse supports the following syntax
+Argparse supports the following syntax:
 ```
 --long
 --long=value
@@ -54,7 +54,7 @@ Argparse supports the following syntax
 Where on the last 2 lines, `a` and `b` are considered `flags`, while `c` is considered a `kwarg` and is set to `value`. In addition, an argument may be a comma-separated vector.
 
 # Default values
-`Args` and `Kwargs` may have a default value, which will be used when the argument is not present on the commandline. These can be passed through the `set_default` function, it accepts either a string or the type of the parameter itself
+`Args` and `Kwargs` may have a default value, which will be used when the argument is not present on the commandline. These can be passed through the `set_default` function, it accepts either a string or the type of the parameter itself:
 ```c++
 std::string &dst_path           = arg("An optional positional argument").set_default("output.png");
 float &alpha                    = kwarg("a,alpha", "An optional float parameter with float as default").set_default(0.5f);
@@ -64,13 +64,13 @@ std::vector<int> &values        = kwarg("v,values", "An optional vector of integ
 ```
 
 # Implicit values
-`Kwargs` may have an implicit value, meaning that when the argument is present on the commandline, but no value is set, it will use the implicit value. Implicit values passed as string.
+`Kwargs` may have an implicit value, meaning that when the argument is present on the commandline, but no value is set, it will use the implicit value. Implicit values are passed as string.
 ```c++
 int &k                          = kwarg("k", "An implicit int parameter", /*implicit*/"3");
 float &alpha                    = kwarg("a,alpha", "A implicit float parameter", /*implicit*/"0.5");
 std::vector<int> &numbers       = kwarg("n,numbers", "A implicit int vector", /*implicit*/"1,2,3");
 ```
-Examples
+Examples:
 ```
 $ argparse_test -k
 k = 3
@@ -83,7 +83,7 @@ numbers = 3,4,5
 ```
 
 # Vectors and multiple arguments
-Argparse supports `std::vector`. There are 2 ways in which the vector can be read from the commandline, either a vector can be parsed from a comma-separated string, or by setting using the `multi_argument()` flag to aggregate multiple program argument into the vector, e.g. when using the `./*` in bash to list all the files in a directory.  
+Argparse supports `std::vector`. There are 2 ways in which the vector can be read from the commandline, either a vector can be parsed from a comma-separated string, or by setting the `multi_argument()` flag to aggregate multiple program arguments into the vector, e.g. when using the `./*` in bash to list all the files in a directory.  
 ```c++
 std::vector<int> &numbers           = kwarg("n,numbers", "An int vector");
 std::vector<std::string> &tags      = kwarg("t,tags", "A word vector");
@@ -104,7 +104,7 @@ std::string &A = arg("Source path");
 std::vector<std::string> &B = arg("Variable paths").multi_argument();
 std::string &C = arg("Last");
 ```
-And the following input
+And the following input:
 ```bash
 $ argparse_test a b b b c
 ```
@@ -127,7 +127,7 @@ $ ./argparse_test --alpha 0.4
 ```
 
 # Enums
-One of the reasons for creating this library was to natively support Enums using [magic_enum](https://github.com/Neargye/magic_enum), if it is found on the system, Argparse supports automatic conversion from commandline to `enum`. E.g. consider the following example
+One of the reasons for creating this library was to natively support Enums using [magic_enum](https://github.com/Neargye/magic_enum). If it is found on the system, Argparse supports automatic conversion from commandline to `enum`. Consider the following example:
 
 ```c++
 enum Color {
@@ -147,7 +147,7 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 ```
-Running it, and it will automatically convert the input to the `Color` enum (case-insensitive) 
+Running it will automatically convert the input to the `Color` enum (case-insensitive):
 ```
 $ ./argparse_test --color blue
 ```
@@ -160,7 +160,7 @@ $ ./argparse_test --help
 ```
 
 # Custom classes
-When using a custom class, Argparse will try to create the class using the constructor with an `std::string` as parameters. See `examples/argparse_example.cpp` for an example using a custom class.
+When using a custom class, Argparse will try to create the class using the constructor with an `std::string` as parameter. See `examples/argparse_example.cpp` for an example using a custom class.
 
 
 # Raise exception on error
@@ -177,7 +177,7 @@ int main(int argc, char* argv[]) {
 }
 ```
 # Examples and help flag
-The `--help` is automatically added in ArgParse. Consider the following example usage when executing `argparse_test` (int `examples/argparse_example.cpp`) 
+The `--help` is automatically added in ArgParse. Consider the following example usage when executing `argparse_test` (int `examples/argparse_example.cpp`): 
 ```
 $ ./argparse_example --help
 Welcome to Argparse
@@ -197,16 +197,16 @@ Options:
 ```
 You may notice the `Welcome to Argparse` message, this message was created by overwriting the `welcome` function (see `examples/argparse_example.cpp`)
 
-In case it fails to parse the input string, it will display an error and exit. E.g. here we'll set `k` to be `notanumber` 
+In case it fails to parse the input string, it will display an error and exit. E.g. here we'll set `k` to be `notanumber`: 
 ```
 $ ./argparse_test src dst -k notanumber
 Invalid argument, could not convert "notanumber" for -k (An implicit int parameter)
 ```
 
 # Installing
-Since it is a header-only library, you can simply copy the `include/argparse.hpp` file in to your own project. 
+Since it is a header-only library, you can simply copy the `include/argparse.hpp` file into your own project. 
 
-Alternatively, you can build&install it using the following commands
+Alternatively, you can build&install it using the following commands:
 ```
 mkdir build && cd build
 cmake ..
@@ -224,4 +224,4 @@ target_link_libraries(${PROJECT_NAME} PUBLIC argparse::argparse)
 # FAQ
  - **Why references?**
    
-    This is a good question, in order to support implicit parameters, multiple parameters and being invariant to the order of input, Argparse needs to know all the possible input arguments before assigning them. And since the goal of this library is to define a variable only once I needed a way to modify the contents of the returned value after it has seen all the arguments. Returning by reference allows this to be possible. In the future when guaranteed copy-elision is implemented for primitive types, the reference can be removed.  
+    This is a good question. In order to support implicit parameters, multiple parameters and invariance to the order of input, Argparse needs to know all the possible input arguments before assigning them. And since the goal of this library is to define a variable only once, I needed a way to modify the contents of the returned value after it has seen all the arguments. Returning by reference makes this possible. In the future, when guaranteed copy-elision is implemented for primitive types, the reference can be removed.  

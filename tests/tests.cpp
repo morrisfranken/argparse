@@ -21,7 +21,6 @@ struct Custom {
 };
 
 std::pair<int, char**> get_argc_argv(std::string &str) {
-    std::stringstream ss(str);
     std::string key;
     std::vector<char*> splits = {(char *)str.c_str()};
     for (int i = 1; i < str.size(); i++) {
@@ -39,9 +38,11 @@ std::pair<int, char**> get_argc_argv(std::string &str) {
 }
 
 template <typename T> T test_args(std::string command) {
+    cout << command << endl;
     const auto &[argc, argv] = get_argc_argv(command);
     auto args = argparse::parse<T>(argc, argv);
     args.print();
+    cout << endl;
     return args;
 }
 
@@ -50,14 +51,16 @@ void TEST_MULTI() {
         std::string &A = arg("Source path");
         std::vector<std::string> &B = arg("Variable paths").multi_argument();
         std::string &C = arg("Last");
+        std::vector<std::string> &D = kwarg("d", "comma-separated").set_default("");
     };
 
     {
-        Args args = test_args<Args>("argparse_test a b b b c");
+        Args args = test_args<Args>("argparse_test a b b b c -d 1,2,3,");
 
         assert(args.A == "a");
         assert(args.B.size() == 3 && args.B[0] == "b" && args.B[2] == "b");
         assert(args.C == "c");
+        assert(args.D.size() == 3);
     }
 }
 

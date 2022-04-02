@@ -1,6 +1,7 @@
 #pragma once
 //
 // @author : Morris Franken
+//  https://github.com/morrisfranken/argparse
 //
 // Permission is hereby granted, free of charge, to any person or organization
 // obtaining a copy of the software and accompanying documentation covered by
@@ -24,7 +25,6 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 #include <cctype>              // for isdigit, tolower
-//#include <ext/alloc_traits.h>  // for __alloc_traits<>::value_type
 #include <sstream>
 #include <cstdlib>             // for size_t, exit
 #include <algorithm>           // for max, transform, copy, min
@@ -145,7 +145,8 @@ namespace argparse {
     struct ConvertBase {
         virtual ~ConvertBase() = default;
         virtual void convert(const std::string &v) = 0;
-        virtual void set_default(const std::unique_ptr<ConvertBase> &default_value) = 0;
+        virtual void set_default(const std::unique_ptr<ConvertBase> &default_value, const std::string &default_string) = 0;
+        [[nodiscard]] virtual size_t get_type_id() const = 0;
         [[nodiscard]] virtual std::string get_allowed_entries() const = 0;
     };
 
@@ -159,8 +160,15 @@ namespace argparse {
             data = get<T>(v);
         }
 
-        void set_default(const std::unique_ptr<ConvertBase> &default_value) override {
-            data = ((ConvertType<T>*)(default_value.get()))->data;  // TODO: ensure typeid matches...
+        void set_default(const std::unique_ptr<ConvertBase> &default_value, const std::string &default_string) override {
+            if (this->get_type_id() == default_value->get_type_id())    // When the types do not match exactly. resort to string conversion
+                data = ((ConvertType<T>*)(default_value.get()))->data;
+            else
+                data = get<T>(default_string);
+        }
+
+        [[nodiscard]] size_t get_type_id() const override {
+            return typeid(T).hash_code();
         }
 
         [[nodiscard]] std::string get_allowed_entries() const override {
@@ -257,7 +265,7 @@ namespace argparse {
             is_set_by_user = false;
             if (data_default != nullptr) {
                 value_ = *default_str_; // for printing
-                datap->set_default(data_default);
+                datap->set_default(data_default, *default_str_);
             } else if (default_str_.has_value()) {   // in cases where a string is provided to the `set_default` function
                 _convert(default_str_.value());
             } else {

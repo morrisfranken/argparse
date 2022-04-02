@@ -35,11 +35,11 @@ $ ./argparse_test source -k 4 --verbose
 # Input
 Argparse distinguishes 3 different types of arguments:
 
-| Type | Function  |
-| --- |:-------------|
-| `arg(help)`    | positional arguments |
-| `kwarg(key,help,implicit)`  | keyworded-arguments that require a key and a value, e.g. `--variable 0.5`.  |
-| `flag(key,help)`   | arguments that do not take any value, but are used to set a certain flag to true (e.g. `--verbose`) |
+| Type | Function                                                                                                                 |
+| --- |:-------------------------------------------------------------------------------------------------------------------------|
+| `arg(help)`    | positional arguments                                                                                                     |
+| `kwarg(key,help,implicit)`  | keyworded-arguments that require a key and a value, e.g. `--variable 0.5`.                                               |
+| `flag(key,help)`   | a boolean argument that is by default `false`, but can be set to `true` by defining it on the commandline (e.g. `--verbose`) |
 
 Argparse supports the following syntax
 ```
@@ -70,7 +70,7 @@ int &k                          = kwarg("k", "An implicit int parameter", /*impl
 float &alpha                    = kwarg("a,alpha", "A implicit float parameter", /*implicit*/"0.5");
 std::vector<int> &numbers       = kwarg("n,numbers", "A implicit int vector", /*implicit*/"1,2,3");
 ```
-Examples
+On the commandline the implicit values can be overwritten by using the `=` sign followed by the value. Examples
 ```
 $ argparse_test -k
 k = 3

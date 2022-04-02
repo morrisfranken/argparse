@@ -19,6 +19,7 @@ struct MyArgs : public argparse::Args {
     float &alpha                    = kwarg("a,alpha", "An optional float parameter with default value").set_default(0.6);
     std::optional<float> &beta      = kwarg("b,beta", "An optional float parameter with std::optional return");
     int &val                        = kwarg("val", "An optional int value").set_default(20.0);
+    short &small                    = kwarg("short", "An optional short value").set_default(16);
     std::vector<int> &numbers       = kwarg("n,numbers", "An int vector, comma separated");
     std::vector<std::string> &files = kwarg("files", "multiple arguments").multi_argument();
     bool &verbose                   = flag("v,verbose", "A flag to toggle verbose");

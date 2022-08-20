@@ -303,11 +303,14 @@ namespace argparse {
          *
          * Returns a reference to the Entry, which will collapse into the requested type in `Entry::operator T()`
          */
-        Entry &arg(const std::string &help) {
-            std::shared_ptr<Entry> entry = std::make_shared<Entry>(Entry::ARG, "arg_" + std::to_string(_arg_idx++), help);
+        Entry &arg(const std::string& name, const std::string &help) {
+            std::shared_ptr<Entry> entry = std::make_shared<Entry>(Entry::ARG, name, help);
             arg_entries.emplace_back(entry);
             all_entries.emplace_back(entry);
             return *entry;
+        }
+        Entry &arg(const std::string &help) {
+            return arg("arg_" + std::to_string(_arg_idx++), help);
         }
 
         /* Add a Key-Worded argument that takes a variable.

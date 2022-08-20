@@ -372,6 +372,11 @@ namespace argparse {
          * Upon error, it will print the error and exit immediately.
          */
         void parse(int argc, const char* const *argv, const bool &raise_on_error) {
+            if (argc == 1) { //if there are no arguments, assume the user doesn't know the options.
+                help();
+                exit(0);
+            }
+			
             program_name = argv[0];
             params = std::vector<std::string>(argv + 1, argv + argc);
 

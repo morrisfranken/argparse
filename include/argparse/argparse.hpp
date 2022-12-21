@@ -66,7 +66,7 @@ namespace argparse {
 #ifdef _WIN32
         return input_str; // no bold for windows
 #else
-        return "\e[1m" + input_str + "\e[0m";
+        return "\\e[1m" + input_str + "\\e[0m";
 #endif
     }
 

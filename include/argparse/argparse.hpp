@@ -62,7 +62,7 @@ namespace argparse {
     template <typename, typename = void> struct has_ostream_operator : std::false_type {};
     template <typename T> struct has_ostream_operator<T, decltype(void(std::declval<std::ostream&>() << std::declval<const T&>()))> : std::true_type {};
 
-    std::string bold(const std::string& input_str) {
+    inline std::string bold(const std::string& input_str) {
 #ifdef _WIN32
         return input_str; // no bold for windows
 #else

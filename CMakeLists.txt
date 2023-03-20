@@ -38,6 +38,11 @@ if(ARGPARSE_BUILD_EXAMPLES)
     target_include_directories(multiple_arguments PUBLIC include)
     target_link_libraries(multiple_arguments PUBLIC morrisfranken::argparse)
 
+    set(EXE_NAME argparse_subcommands)
+    add_executable(${EXE_NAME} examples/${EXE_NAME}.cpp)
+    target_include_directories(${EXE_NAME} PUBLIC include)
+    target_link_libraries(${EXE_NAME} PUBLIC morrisfranken::argparse)
+
     add_executable(enums examples/enums.cpp)
     target_include_directories(enums PUBLIC include)
     target_link_libraries(enums PUBLIC morrisfranken::argparse)

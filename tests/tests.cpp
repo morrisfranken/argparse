@@ -192,6 +192,52 @@ void TEST_THROW() {
     }
 }
 
+void TEST_SUBCOMMANDS() {
+    struct CommitArgs : public argparse::Args {
+        bool &all                       = flag("a,all", "Tell the command to automatically stage files that have been modified and deleted, but new files you have not told git about are not affected.");
+        std::string &message            = kwarg("m,message", "Use the given <msg> as the commit message.");
+    };
+
+    struct PushArgs : public argparse::Args {
+        std::string &source             = arg("Source repository").set_default("origin");
+        std::string &destination        = arg("Destination repository").set_default("master");
+    };
+
+    struct MainArgs : public argparse::Args {
+        bool &verbose                   = flag("v,verbose", "A flag to toggle verbose");
+
+        CommitArgs &commit              = subcommand("commit");
+        PushArgs &push                  = subcommand("push");
+
+        void welcome() {
+            std::cout << "Welcome to Argparse" << std::endl;
+        }
+    };
+
+    {
+        MainArgs args = test_args<MainArgs>("argparse_test --verbose");
+        assert(args.commit.is_valid == false);
+        assert(args.push.is_valid == false);
+        assert(args.verbose == true);
+    }
+
+    {
+        MainArgs args = test_args<MainArgs>("argparse_test commit -am \"testing-argparse\"");
+        assert(args.push.is_valid == false);
+        assert(args.commit.is_valid == true);
+        assert(args.commit.all == true);
+        assert(args.commit.message == "\"testing-argparse\"");
+    }
+
+    {
+        MainArgs args = test_args<MainArgs>("argparse_test push origin dev");
+        assert(args.commit.is_valid == false);
+        assert(args.push.is_valid == true);
+        assert(args.push.source == "origin");
+        assert(args.push.destination == "dev");
+    }
+}
+
 int main(int argc, char* argv[]) {
     TEST_ALL();
     TEST_MULTI();
@@ -203,5 +249,8 @@ int main(int argc, char* argv[]) {
     std::cout << "Magic Enum not installed in this system, therefore native enum support disabled" << std::endl;
 #endif
 
+    TEST_SUBCOMMANDS();
+
+    std::cout << "finished all tests" << std::endl;
     return 0;
 }

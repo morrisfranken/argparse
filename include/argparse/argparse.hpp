@@ -35,6 +35,7 @@
 #include <memory>              // for allocator, shared_ptr, __shared_ptr_ac...
 #include <optional>            // for optional, nullopt
 #include <stdexcept>           // for runtime_error, invalid_argument
+#include <filesystem>          // for getting program_name from path
 #include <string>              // for string, operator+, basic_string, char_...
 #include <type_traits>         // for declval, false_type, true_type, is_enum
 #include <utility>             // for move, pair
@@ -48,6 +49,7 @@
 #define ARGPARSE_VERSION 4
 
 namespace argparse {
+    class Args;
     using std::cout, std::cerr, std::endl, std::setw, std::size_t;
 
     template<typename T> struct is_vector : public std::false_type {};
@@ -286,16 +288,38 @@ namespace argparse {
         friend class Args;
     };
 
+    struct SubcommandEntry {
+        std::shared_ptr<Args> subargs;
+        std::string subcommand_name;
+
+        explicit SubcommandEntry(std::string subcommand_name) : subcommand_name(std::move(subcommand_name)) {}
+
+        template<typename T> operator T &() {
+            static_assert(std::is_base_of_v<Args, T>, "Subcommand type must be a derivative of argparse::Args");
+
+            std::shared_ptr<T> res = std::make_shared<T>();
+            res->program_name = subcommand_name;
+            subargs = res;
+            return *(T*)(subargs.get());
+        };
+
+        // Force an ambiguous error when not using a reference.
+        template <typename T> operator T() {} // When you get here  because you received an error, make sure all parameters of argparse are references (e.g. with `&`)
+    };
+
     class Args {
     private:
         size_t _arg_idx = 0;
-        std::string program_name;
         std::vector<std::string> params;
         std::vector<std::shared_ptr<Entry>> all_entries;
         std::map<std::string, std::shared_ptr<Entry>> kwarg_entries;
         std::vector<std::shared_ptr<Entry>> arg_entries;
+        std::map<std::string, std::shared_ptr<SubcommandEntry>> subcommand_entries;
 
     public:
+        std::string program_name;
+        bool is_valid = false;
+
         virtual ~Args() = default;
 
         /* Add a positional argument, the order in which it is defined equals the order in which they are being read.
@@ -336,13 +360,33 @@ namespace argparse {
             return kwarg(key, help, "true").set_default<bool>(false);
         }
 
+        /* Add a a subcommand
+         * command : name of the subcommand, e.g. 'commit', if you wish to implement a function like 'git commit'
+         *
+         * Returns a reference to the Entry, which will collapse into the requested type in `Entry::operator T()`
+         * Expected type *Must* be an std::shared_ptr of derivative of the argparse::Args class
+         */
+        SubcommandEntry &subcommand(const std::string &command) {
+            std::shared_ptr<SubcommandEntry> entry = std::make_shared<SubcommandEntry>(command);
+            subcommand_entries[command] = entry;
+            return *entry;
+        }
+
         virtual void welcome() {}       // Allow to overwrite the `welcome` function to add a welcome-message to the help output
         virtual void help() {
             welcome();
             cout << "Usage: " << program_name << " ";
             for (const auto &entry : arg_entries)
                 cout << entry->keys_[0] << ' ';
-            cout << " [options...]" << endl;
+            cout << " [options...]";
+            if (!subcommand_entries.empty()) {
+                cout << " [SUBCOMMAND: ";
+                for (const auto &[subcommand, subentry]: subcommand_entries) {
+                    cout << subcommand << ", ";
+                }
+                cout << "]";
+            }
+            cout << endl;
             for (const auto &entry : arg_entries) {
                 cout << setw(17) << entry->keys_[0] << " : " << entry->help << entry->info() << endl;
             }
@@ -352,6 +396,11 @@ namespace argparse {
                 if (entry->type != Entry::ARG) {
                     cout << setw(17) << entry->_get_keys() << " : " << entry->help << entry->info() << endl;
                 }
+            }
+
+            for (const auto &[subcommand, subentry] : subcommand_entries) {
+                cout << endl << endl << bold("Subcommand: ") << bold(subcommand) << endl;
+                subentry->subargs->help();
             }
         }
 
@@ -369,10 +418,23 @@ namespace argparse {
         }
 
         /* parse all parameters and also check for the help_flag which was set in this constructor
-         * Upon error, it will print the error and exit immediately.
+         * Upon error, it will print the error and exit immediately if validation_action is ValidationAction::EXIT_ON_ERROR
          */
         void parse(int argc, const char* const *argv, const bool &raise_on_error) {
-            program_name = argv[0];
+            auto parse_subcommands = [&]() -> int {
+                for (int i = 1; i < argc; i++) {
+                    for (auto &[subcommand, subentry] : subcommand_entries) {
+                        if (subcommand == argv[i]) {
+                            subentry->subargs->parse(argc - i, argv + i, raise_on_error);
+                            return i;
+                        }
+                    }
+                }
+                return argc;
+            };
+            argc = parse_subcommands();   // argc_ is the number of arguments that should be parsed after the subcommand has finished parsing
+
+            program_name = std::filesystem::path(argv[0]).stem().string();
             params = std::vector<std::string>(argv + 1, argv + argc);
 
             bool& _help = flag("help", "print help");
@@ -473,6 +535,7 @@ namespace argparse {
             }
 
             validate(raise_on_error);
+            is_valid = true;
         }
 
         void print() const {
@@ -480,6 +543,26 @@ namespace argparse {
                 std::string snip = entry->type == Entry::ARG ? "(" + (entry->help.size() > 10 ? entry->help.substr(0, 7) + "..." : entry->help) + ")" : "";
                 cout << setw(21) << entry->_get_keys() + snip << " : " << (entry->is_set_by_user? bold(entry->value_.value_or("null")) : entry->value_.value_or("null")) << endl;
             }
+
+            for (const auto &[subcommand, subentry] : subcommand_entries) {
+                if (subentry->subargs->is_valid) {
+                    cout << endl << "--- Subcommand: " << subcommand << endl;
+                    subentry->subargs->print();
+                }
+            }
+        }
+
+        virtual int run() {return 0;}       // For automatically running subcommands
+        int run_subcommands() {
+            for (const auto &[subcommand, subentry] : subcommand_entries) {
+                if (subentry->subargs->is_valid) {
+                    return subentry->subargs->run();
+                }
+            }
+
+            std::cerr << "No subcommand provided" << std::endl;
+            help();
+            return -1;
         }
     };
 

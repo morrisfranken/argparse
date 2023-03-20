@@ -94,10 +94,10 @@ Example usage:
 ```bash
 $ argparse_test --numbers 3,4,5,6                
 $ argparse_test --numbers=3,4,5,6
-$ argparse_test --tags="hello"
-$ argparse_test --tags="hello, world"
+$ argparse_test --tags hello
+$ argparse_test --tags="1st tag,2nd tag"   # if the strings contain spaces
 $ argparse_test --files a b c
-$ argparse_test --files ./*               # files will now contain a list of the files in the current directory
+$ argparse_test --files ./*                # files will now contain a list of the files in the current directory
 ```
 In case there are other positional arguments, Argparse will make sure that they are correctly assigned. For example, consider the following example:
 ```c++
@@ -152,12 +152,83 @@ Running it will automatically convert the input to the `Color` enum (case-insens
 ```
 $ ./argparse_test --color blue
 ```
-It will only accept a valid input for enums, and the help-tip will display the available options for this enum:
+It will only accept a is_valid input for enums, and the help-tip will display the available options for this enum:
 ```
 $ ./argparse_test --help
 ...
         -c,--color : An Enum input [allowed: <red, blue, green>, required]
 ...
+```
+
+# Subcommands
+Argparse supports subcommands by creating a separate `argparse::Args` instance for them. Define an `int run()` function that will be executed once the user requests the specified subcommand. To add the subcommand to your program, add a line to your main program arguments specifying the class and the name of the subcommand using the `subcommand` function as shown below:
+```c++
+struct CommitArgs : public argparse::Args {
+    bool &all                       = flag("a,all", "Tell the command to automatically stage files that have been modified and deleted, but new files you have not told git about are not affected.");
+    std::string &message            = kwarg("m,message", "Use the given <msg> as the commit message.");
+
+    // This will be executed via `args.run_subcommands()` if the user calls the `commit` subcommand 
+    int run() override {
+        std::cout << "running commit with the with the following message: " << this->message << std::endl;
+        return 0;
+    }
+};
+
+struct PushArgs : public argparse::Args {
+    std::string &source             = arg("Source repository").set_default("origin");
+    std::string &destination        = arg("Destination repository").set_default("master");
+
+    void welcome() override {
+        std::cout << "Push code changes to remote" << std::endl;
+    }
+
+    // This will be executed via `args.run_subcommands()` if the user calls the `push` subcommand
+    int run() override {
+        std::cout << "running push with the following parameters" << std::endl;
+        print();
+        return 0;
+    }
+};
+
+struct MyArgs : public argparse::Args {
+    bool &version                   = flag("v,version", "Print version");
+
+    CommitArgs &commit              = subcommand("commit");
+    PushArgs &push                  = subcommand("push");
+};
+
+int main(int argc, char* argv[]) {
+    auto args = argparse::parse<MyArgs>(argc, argv);
+
+    if (args.version) {
+        std::cout << "argparse_subcomands version 1.0.0" << std::endl;
+        return 0;
+    }
+
+    return args.run_subcommands();
+}
+```
+Usage of the above example:
+```bash
+$ ./argparse_subcommands commit -am "hello world"
+running commit with the with the following message: hello world
+```
+```bash
+$ ./argparse_subcommands push origin dev
+running push with the following parameters
+    arg_0(Source ...) : origin
+    arg_1(Destina...) : dev
+               --help : false
+```
+```bash
+$ ./argparse_subcommands commit --help
+Usage: commit  [options...]
+
+Options:
+         -a,--all : Tell the command to automatically stage files that have been modified and deleted, but new files you have not told git about are not affected. [implicit: "true", default: false]
+     -m,--message : Use the given <msg> as the commit message. [required]
+           --help : print help [implicit: "true", default: false]
+
 ```
 
 # Custom classes

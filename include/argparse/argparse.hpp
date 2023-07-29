@@ -512,7 +512,7 @@ namespace argparse {
                 if (flat_idx < arguments_flat.size() && flat_idx >= arg_i) {
                     if (arg_entries[arg_entries.size() - arg_j]->_is_multi_argument) {
                         std::stringstream s;  // Combine multiple arguments into 1 comma-separated string for parsing
-                        copy(&arguments_flat[arg_i],&arguments_flat[flat_idx + 1], std::ostream_iterator<std::string>(s,","));
+                        copy(&arguments_flat[arg_i],&arguments_flat[flat_idx] + 1, std::ostream_iterator<std::string>(s,","));
                         std::string value = s.str();
                         value.back() = '\0'; // remove trailing ','
                         arg_entries[arg_i]->_convert(value);

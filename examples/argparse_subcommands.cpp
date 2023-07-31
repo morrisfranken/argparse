@@ -44,4 +44,15 @@ int main(int argc, char* argv[]) {
     }
 
     return args.run_subcommands();
+
+    // Alternative way to run subcommands
+//    if (args.commit.is_valid) {
+//        std::cout << "running commit with the with the following message: " << args.commit.message << std::endl;
+//    } else if (args.push.is_valid) {
+//        std::cout << "running push with the following parameters" << std::endl;
+//        args.push.print();
+//    } else {
+//        std::cout << "No subcommand given" << std::endl;
+//    }
+//    return 0
 }

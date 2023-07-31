@@ -290,7 +290,7 @@ It can be included in your cmake project as follows:
 ```
 find_package(argparse REQUIRED)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC morrisfranken::argparse)
+target_link_libraries(${PROJECT_NAME} PUBLIC argparse::argparse)
 ``` 
 
 # FAQ

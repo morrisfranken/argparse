@@ -41,7 +41,7 @@
 #include <utility>             // for move, pair
 #include <vector>              // for vector
 
-#if __has_include("magic_enum.hpp")
+#if __has_include(<magic_enum.hpp>)
 #include <magic_enum.hpp>      // for enum_entries
 #define HAS_MAGIC_ENUM
 #endif
@@ -437,7 +437,7 @@ namespace argparse {
             program_name = std::filesystem::path(argv[0]).stem().string();
             params = std::vector<std::string>(argv + 1, argv + argc);
 
-            bool& _help = flag("help", "print help");
+            bool& _help = flag("?,help", "print help");
 
             auto is_value = [&](const size_t &i) -> bool {
                 return params.size() > i && (params[i][0] != '-' || (params[i].size() > 1 && std::isdigit(params[i][1])));  // check for number to not accidentally mark negative numbers as non-parameter

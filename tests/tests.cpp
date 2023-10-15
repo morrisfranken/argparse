@@ -110,6 +110,7 @@ void TEST_ENUM() {
 void TEST_ALL() {
     struct Args : public argparse::Args {
         std::string& src_path           = arg("Source path");
+        std::string& named_arg          = arg("named_arg", "Named argument");
         std::string& dst_path           = arg("Destination path").set_default("world");// default value set to "world"
         std::vector<std::string>& others= arg("Others").multi_argument().set_default<std::vector<std::string>>({});// default value set to empty vector
         int& k                          = kwarg("k", "A required parameter (short only)", "3");   // Implicit value set to 3
@@ -127,9 +128,10 @@ void TEST_ALL() {
     };
 
     {
-        Args args = test_args<Args>("argparse_test source_path destination -k=5 --alpha=1 --beta 3.3 --gamma --numbers=1,2,3,4,5 --numbers2 6,7,8 --files f1 f2 f3 --custom hello_custom --optional 1 --verbose");
+        Args args = test_args<Args>("argparse_test source_path named_arg_input destination -k=5 --alpha=1 --beta 3.3 --gamma --numbers=1,2,3,4,5 --numbers2 6,7,8 --files f1 f2 f3 --custom hello_custom --optional 1 --verbose");
 
         assert(args.src_path == "source_path");
+        assert(args.named_arg == "named_arg_input");
         assert(args.dst_path == "destination");
         assert(args.k == 5);
         assert(args.alpha != nullptr && std::abs(*args.alpha - 1) < 0.0001);
@@ -146,9 +148,10 @@ void TEST_ALL() {
     }
 
     {
-        Args args = test_args<Args>("argparse_test source_path -k --files --custom hello_custom --optional 1 --verbose");
+        Args args = test_args<Args>("argparse_test source_path named_arg_input -k --files --custom hello_custom --optional 1 --verbose");
 
         assert(args.src_path == "source_path");
+        assert(args.named_arg == "named_arg_input");
         assert(args.dst_path == "world");
         assert(args.k == 3);
         assert(args.alpha == nullptr);

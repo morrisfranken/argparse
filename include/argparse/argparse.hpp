@@ -328,7 +328,19 @@ namespace argparse {
          * Returns a reference to the Entry, which will collapse into the requested type in `Entry::operator T()`
          */
         Entry &arg(const std::string &help) {
-            std::shared_ptr<Entry> entry = std::make_shared<Entry>(Entry::ARG, "arg_" + std::to_string(_arg_idx++), help);
+            return arg("arg_" + std::to_string(_arg_idx), help);
+        }
+
+        /* Add a *named* positional argument, the order in which it is defined equals the order in which they are being read.
+         * key : The name of the argument, otherwise arg_<position> will be used
+         * help : Description of the variable
+         *
+         * Returns a reference to the Entry, which will collapse into the requested type in `Entry::operator T()`
+         */
+        Entry &arg(const std::string& key, const std::string &help) {
+            std::shared_ptr<Entry> entry = std::make_shared<Entry>(Entry::ARG, key, help);
+            // Increasing _arg_idx, so that arg2 will be arg_2, irregardless of whether it is preceded by other positional arguments
+            _arg_idx++;
             arg_entries.emplace_back(entry);
             all_entries.emplace_back(entry);
             return *entry;

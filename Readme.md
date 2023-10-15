@@ -1,35 +1,37 @@
 # Argparse; Modern Argument Parser for C++17
-A lightweight header-only library for parsing command line arguments in an elegant manner. Argparse allows you to define variables as a one-liner without redefining their type or names while representing all the program arguments in a struct that can be easily passed to functions. 
+A lightweight header-only library for parsing command line arguments in an elegant manner. Argparse allows you to define variables as a one-liner without redefining their type or names while representing all the program arguments in a struct that can be easily passed to functions.
 
 ## Usage
 ```c++
 #include "argparse/argparse.hpp"
 
 struct MyArgs : public argparse::Args {
-    std::string &src_path = arg("a positional string argument");
-    int &k                = kwarg("k", "A keyworded integer value");
-    float &alpha          = kwarg("a,alpha", "An optional float value").set_default(0.5f);
-    bool &verbose         = flag("v,verbose", "A flag to toggle verbose");
+    std::string &anonymous = arg("an anonymous positional string argument");
+    std::string &src_path  = arg("src_path", "a positional string argument");
+    int &k                 = kwarg("k", "A keyworded integer value");
+    float &alpha           = kwarg("a,alpha", "An optional float value").set_default(0.5f);
+    bool &verbose          = flag("v,verbose", "A flag to toggle verbose");
 };
 
 
 int main(int argc, char* argv[]) {
-    MyArgs args = argparse::parse<MyArgs>(argc, argv);
+    auto args = argparse::parse<MyArgs>(argc, argv);
 
     if (args.verbose)
-        args.print();       // prints all variables 
+        args.print();      // prints all variables
 
     return 0;
 }
 ```
-Example output when setting the `verbose` flag in the example above, it will print the capturing arguments with the `args.print()` function: 
+Example output when setting the `verbose` flag in the example above, it will print the capturing arguments with the `args.print()` function:
 ```
-$ ./argparse_test source -k 4 --verbose
-    arg_0(a posit...) : source
+$ ./argparse_test hello source -k 4 --verbose
+    arg_0(an anon...) : hello
+ src_path(a posit...) : source
                    -k : 4
            -a,--alpha : 0.5
          -v,--verbose : true
-               --help : false
+            -?,--help : false
 ```
 
 # Input
@@ -37,7 +39,8 @@ Argparse distinguishes 3 different types of arguments:
 
 | Type | Function                                                                                                                 |
 | --- |:-------------------------------------------------------------------------------------------------------------------------|
-| `arg(help)`    | positional arguments                                                                                                     |
+| `arg(help)`    | anonymous positional arguments                                                                                                     |
+| `arg(key,help)`    | named positional arguments                                                                                                     |
 | `kwarg(key,help,implicit)`  | keyworded-arguments that require a key and a value, e.g. `--variable 0.5`.                                               |
 | `flag(key,help)`   | a boolean argument that is by default `false`, but can be set to `true` by defining it on the commandline (e.g. `--verbose`) |
 
@@ -84,7 +87,7 @@ numbers = 3,4,5
 ```
 
 # Vectors and multiple arguments
-Argparse supports `std::vector`. There are 2 ways in which the vector can be read from the commandline, either a vector can be parsed from a comma-separated string, or by setting the `multi_argument()` flag to aggregate multiple program arguments into the vector, e.g. when using the `./*` in bash to list all the files in a directory.  
+Argparse supports `std::vector`. There are 2 ways in which the vector can be read from the commandline, either a vector can be parsed from a comma-separated string, or by setting the `multi_argument()` flag to aggregate multiple program arguments into the vector, e.g. when using the `./*` in bash to list all the files in a directory.
 ```c++
 std::vector<int> &numbers           = kwarg("n,numbers", "An int vector");
 std::vector<std::string> &tags      = kwarg("t,tags", "A word vector");
@@ -92,7 +95,7 @@ std::vector<std::string> &files     = kwarg("files", "multiple arguments").multi
 ```
 Example usage:
 ```bash
-$ argparse_test --numbers 3,4,5,6                
+$ argparse_test --numbers 3,4,5,6
 $ argparse_test --numbers=3,4,5,6
 $ argparse_test --tags hello
 $ argparse_test --tags="1st tag,2nd tag"   # if the strings contain spaces
@@ -109,11 +112,11 @@ And the following input:
 ```bash
 $ argparse_test a b b b c
 ```
-Argparse will assign the non-multiple arguments first, such that `A=a`, `C=c` and `B=b,b,b` 
+Argparse will assign the non-multiple arguments first, such that `A=a`, `C=c` and `B=b,b,b`
 
 
 # Pointers and Optionals
-In situations where setting a default value is not sufficient, Argparse supports `std::optional`, and (smart)pointers, these can be used in situations where you'd like to distinguish whether an argument was set by the user. When declaring a raw pointer or a `std::shared_ptr`, the default value for these are automatically set to `nullptr` (or `std::nullopt` for `std::optional`). 
+In situations where setting a default value is not sufficient, Argparse supports `std::optional`, and (smart)pointers, these can be used in situations where you'd like to distinguish whether an argument was set by the user. When declaring a raw pointer or a `std::shared_ptr`, the default value for these are automatically set to `nullptr` (or `std::nullopt` for `std::optional`).
 ```c++
 std::shared_ptr<float> &alpha   = kwarg("a,alpha", "An optional smart-pointer float parameter");
 std::optional<float> &beta      = kwarg("b,beta", "An optional float parameter with std::optional return");
@@ -167,7 +170,7 @@ struct CommitArgs : public argparse::Args {
     bool &all                       = flag("a,all", "Tell the command to automatically stage files that have been modified and deleted, but new files you have not told git about are not affected.");
     std::string &message            = kwarg("m,message", "Use the given <msg> as the commit message.");
 
-    // This will be executed via `args.run_subcommands()` if the user calls the `commit` subcommand 
+    // This will be executed via `args.run_subcommands()` if the user calls the `commit` subcommand
     int run() override {
         std::cout << "running commit with the with the following message: " << this->message << std::endl;
         return 0;
@@ -249,7 +252,7 @@ int main(int argc, char* argv[]) {
 }
 ```
 # Examples and help flag
-The `--help` is automatically added in ArgParse. Consider the following example usage when executing `argparse_test` (int `examples/argparse_example.cpp`): 
+The `--help` is automatically added in ArgParse. Consider the following example usage when executing `argparse_test` (int `examples/argparse_example.cpp`):
 ```
 $ ./argparse_example --help
 Welcome to Argparse
@@ -269,14 +272,14 @@ Options:
 ```
 You may notice the `Welcome to Argparse` message, this message was created by overwriting the `welcome` function (see `examples/argparse_example.cpp`)
 
-In case it fails to parse the input string, it will display an error and exit. E.g. here we'll set `k` to be `notanumber`: 
+In case it fails to parse the input string, it will display an error and exit. E.g. here we'll set `k` to be `notanumber`:
 ```
 $ ./argparse_test src dst -k notanumber
 Invalid argument, could not convert "notanumber" for -k (An implicit int parameter)
 ```
 
 # Installing
-Since it is a header-only library, you can simply copy the `include/argparse.hpp` file into your own project. 
+Since it is a header-only library, you can simply copy the `include/argparse.hpp` file into your own project.
 
 Alternatively, you can build&install it using the following commands:
 ```
@@ -291,9 +294,9 @@ It can be included in your cmake project as follows:
 find_package(argparse REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC argparse::argparse)
-``` 
+```
 
 # FAQ
  - **Why references?**
-   
-    This is a good question. In order to support implicit parameters, multiple parameters and invariance to the order of input, Argparse needs to know all the possible input arguments before assigning them. And since the goal of this library is to define a variable only once, I needed a way to modify the contents of the returned value after it has seen all the arguments. Returning by reference makes this possible. In the future, when guaranteed copy-elision is implemented for primitive types, the reference can be removed.  
+
+    This is a good question. In order to support implicit parameters, multiple parameters and invariance to the order of input, Argparse needs to know all the possible input arguments before assigning them. And since the goal of this library is to define a variable only once, I needed a way to modify the contents of the returned value after it has seen all the arguments. Returning by reference makes this possible. In the future, when guaranteed copy-elision is implemented for primitive types, the reference can be removed.

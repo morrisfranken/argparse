@@ -23,29 +23,34 @@ install(FILES ${CMAKE_CURRENT_LIST_DIR}/include/argparse/argparse.hpp
 export(EXPORT argparseConfig
         NAMESPACE argparse::)
 
-option(ARGPARSE_BUILD_EXAMPLES OFF)
-option(ARGPARSE_BUILD_TESTS OFF)
+option(ARGPARSE_BUILD_EXAMPLES ON)
+option(ARGPARSE_BUILD_TESTS ON)
 if(ARGPARSE_BUILD_EXAMPLES)
     add_executable(argparse_example examples/argparse_example.cpp)
     target_include_directories(argparse_example PUBLIC include)
     target_link_libraries(argparse_example PUBLIC morrisfranken::argparse)
+    target_compile_options(argparse_example PRIVATE -Wall -Werror -Wpedantic)
 
     add_executable(hello_world examples/hello_world.cpp)
     target_include_directories(hello_world PUBLIC include)
     target_link_libraries(hello_world PUBLIC morrisfranken::argparse)
+    target_compile_options(hello_world PRIVATE -Wall -Werror -Wpedantic)
 
     add_executable(multiple_arguments examples/multiple_arguments.cpp)
     target_include_directories(multiple_arguments PUBLIC include)
     target_link_libraries(multiple_arguments PUBLIC morrisfranken::argparse)
+    target_compile_options(multiple_arguments PRIVATE -Wall -Werror -Wpedantic)
 
     set(EXE_NAME argparse_subcommands)
     add_executable(${EXE_NAME} examples/${EXE_NAME}.cpp)
     target_include_directories(${EXE_NAME} PUBLIC include)
     target_link_libraries(${EXE_NAME} PUBLIC morrisfranken::argparse)
+    target_compile_options(${EXE_NAME} PRIVATE -Wall -Werror -Wpedantic)
 
     add_executable(enums examples/enums.cpp)
     target_include_directories(enums PUBLIC include)
     target_link_libraries(enums PUBLIC morrisfranken::argparse)
+    target_compile_options(enums PRIVATE -Wall -Werror -Wpedantic)
     #target_compile_options(argparse_test PUBLIC -ftime-report)
     #target_precompile_headers(argparse_test PUBLIC include/argparse.h) --> should be enabled on release
 endif()

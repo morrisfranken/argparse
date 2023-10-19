@@ -13,7 +13,8 @@ struct Custom {
 };
 
 struct MyArgs : public argparse::Args {
-    std::string &src_path           = arg("Source path");
+    std::string &anonymous          = arg("an anonymous positional string argument");
+    std::string &src_path           = arg("src_path", "a positional string argument");
     std::string &dst_path           = arg("Destination path").set_default("default_destination");
     int &k                          = kwarg("k", "An implicit int parameter", /*implicit*/"3");
     float &alpha                    = kwarg("a,alpha", "An optional float parameter with default value").set_default(0.6);

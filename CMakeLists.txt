@@ -23,8 +23,8 @@ install(FILES ${CMAKE_CURRENT_LIST_DIR}/include/argparse/argparse.hpp
 export(EXPORT argparseConfig
         NAMESPACE argparse::)
 
-option(ARGPARSE_BUILD_EXAMPLES ON)
-option(ARGPARSE_BUILD_TESTS ON)
+option(ARGPARSE_BUILD_EXAMPLES OFF)
+option(ARGPARSE_BUILD_TESTS OFF)
 if(ARGPARSE_BUILD_EXAMPLES)
     add_executable(argparse_example examples/argparse_example.cpp)
     target_include_directories(argparse_example PUBLIC include)

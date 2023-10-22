@@ -4,9 +4,9 @@ name: CMake on multiple platforms
 
 on:
   push:
-    branches: [ "cicd-test" ]
+    branches: [ "cicd-test", "master" ]
   pull_request:
-    branches: [ "cicd-test" ]
+    branches: [ "cicd-test", "master"]
 
 jobs:
   build:
@@ -48,6 +48,8 @@ jobs:
             c_compiler: cl
           - os: macos-latest
             c_compiler: cl
+          - os: macos-latest
+            c_compiler: gcc
 
     steps:
     - uses: actions/checkout@v3
@@ -67,6 +69,7 @@ jobs:
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DARGPARSE_BUILD_TESTS=ON
         -S ${{ github.workspace }}
 
     - name: Build

@@ -164,7 +164,10 @@ $ ./argparse_test --help
 ```
 
 # Subcommands
-Argparse supports subcommands by creating a separate `argparse::Args` instance for them. Define an `int run()` function that will be executed once the user requests the specified subcommand. To add the subcommand to your program, add a line to your main program arguments specifying the class and the name of the subcommand using the `subcommand` function as shown below:
+Argparse supports subcommands by creating a separate `argparse::Args` instance for them. Argparse currently supports 2 ways of defining the logic for subcommands: 
+   1. By defining an `int run()` function within the Subcommand struct that will be executed once the user requests the specified subcommand. 
+   2. By defining an if statement to check if the subcommand was called and then executing the logic. By doing so you can keep the logic of the subcommand within the main function.
+To add the subcommand to your program, add a line to your main program arguments specifying the class and the name of the subcommand using the `subcommand` function as shown below (using the `int run()` method):
 ```c++
 struct CommitArgs : public argparse::Args {
     bool &all                       = flag("a,all", "Tell the command to automatically stage files that have been modified and deleted, but new files you have not told git about are not affected.");
@@ -209,6 +212,24 @@ int main(int argc, char* argv[]) {
     }
 
     return args.run_subcommands();
+}
+```
+
+Alternatively, you can define the logic for the subcommand within the main function as shown below without having to define the `int run()` method in the subcommand struct
+```c++
+//
+int main(int argc, char* argv[]) {
+    auto args = argparse::parse<MyArgs>(argc, argv);
+
+    if (args.commit.is_valid) {
+        std::cout << "running commit with the with the following message: " << args.commit.message << std::endl;
+    } else if (args.push.is_valid) {
+        std::cout << "running push with the following parameters" << std::endl;
+        args.push.print();
+    } else {
+        std::cout << "No subcommand given" << std::endl;
+    }
+    return 0
 }
 ```
 Usage of the above example:

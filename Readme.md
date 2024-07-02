@@ -167,6 +167,7 @@ $ ./argparse_test --help
 Argparse supports subcommands by creating a separate `argparse::Args` instance for them. Argparse currently supports 2 ways of defining the logic for subcommands: 
    1. By defining an `int run()` function within the Subcommand struct that will be executed once the user requests the specified subcommand. 
    2. By defining an if statement to check if the subcommand was called and then executing the logic. By doing so you can keep the logic of the subcommand within the main function.
+
 To add the subcommand to your program, add a line to your main program arguments specifying the class and the name of the subcommand using the `subcommand` function as shown below (using the `int run()` method):
 ```c++
 struct CommitArgs : public argparse::Args {

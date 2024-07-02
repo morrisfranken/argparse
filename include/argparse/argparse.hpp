@@ -315,6 +315,9 @@ namespace argparse {
         std::map<std::string, std::shared_ptr<Entry>> kwarg_entries;
         std::vector<std::shared_ptr<Entry>> arg_entries;
         std::map<std::string, std::shared_ptr<SubcommandEntry>> subcommand_entries;
+        bool has_options() {
+            return std::find_if(all_entries.begin(), all_entries.end(), [](auto e) { return e->type != Entry::ARG; }) != all_entries.end();
+        };
 
     public:
         std::string program_name;
@@ -390,7 +393,7 @@ namespace argparse {
             cout << "Usage: " << program_name << " ";
             for (const auto &entry : arg_entries)
                 cout << entry->keys_[0] << ' ';
-            cout << " [options...]";
+            if (has_options()) cout << " [options...]";
             if (!subcommand_entries.empty()) {
                 cout << " [SUBCOMMAND: ";
                 for (const auto &[subcommand, subentry]: subcommand_entries) {
@@ -403,7 +406,7 @@ namespace argparse {
                 cout << setw(17) << entry->keys_[0] << " : " << entry->help << entry->info() << endl;
             }
 
-            cout << endl << "Options:" << endl;
+            if (has_options()) cout << endl << "Options:" << endl;
             for (const auto &entry : all_entries) {
                 if (entry->type != Entry::ARG) {
                     cout << setw(17) << entry->_get_keys() << " : " << entry->help << entry->info() << endl;

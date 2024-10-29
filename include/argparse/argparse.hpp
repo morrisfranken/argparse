@@ -164,7 +164,7 @@ namespace argparse {
         explicit ConvertType(const T &value) : ConvertBase(), data(value) {};
 
         void convert(const std::string &v) override {
-            if constexpr (std::is_arithmetic_v<T>) {
+            if constexpr (std::is_arithmetic_v<T> && !std::is_same_v<T, bool>) {
                 // check if the string is an arithmetic value
                 if (!std::regex_match(v, std::regex(("((\\+|-)?[[:digit:]]+)(\\.(([[:digit:]]+)?))?")))) {
                     throw std::invalid_argument("Invalid argument, could not convert \"" + v + "\" to " + typeid(T).name());

@@ -40,6 +40,7 @@
 #include <type_traits>         // for declval, false_type, true_type, is_enum
 #include <utility>             // for move, pair
 #include <vector>              // for vector
+#include <regex>               // for regex, regex_match
 
 #if __has_include(<magic_enum.hpp>)
 #include <magic_enum.hpp>      // for enum_entries
@@ -163,6 +164,12 @@ namespace argparse {
         explicit ConvertType(const T &value) : ConvertBase(), data(value) {};
 
         void convert(const std::string &v) override {
+            if constexpr (std::is_arithmetic_v<T>) {
+                // check if the string is an arithmetic value
+                if (!std::regex_match(v, std::regex(("((\\+|-)?[[:digit:]]+)(\\.(([[:digit:]]+)?))?")))) {
+                    throw std::invalid_argument("Invalid argument, could not convert \"" + v + "\" to " + typeid(T).name());
+                }
+            }
             data = get<T>(v);
         }
 
@@ -454,7 +461,7 @@ namespace argparse {
             program_name = std::filesystem::path(argv[0]).stem().string();
             params = std::vector<std::string>(argv + 1, argv + argc);
 
-            bool& _help = flag("?,help", "print help");
+            bool& _help = flag("h,help", "print help");
 
             auto is_value = [&](const size_t &i) -> bool {
                 return params.size() > i && (params[i][0] != '-' || (params[i].size() > 1 && std::isdigit(params[i][1])));  // check for number to not accidentally mark negative numbers as non-parameter

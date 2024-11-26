@@ -195,10 +195,10 @@ namespace argparse {
     struct Entry {
         enum ARG_TYPE {ARG, KWARG, FLAG} type;
 
-        Entry(ARG_TYPE type, const std::string& key, std::string help, std::optional<std::string> implicit_value=std::nullopt) :
-                type(type),
+        Entry(ARG_TYPE type_str, const std::string& key, std::string help, std::optional<std::string> implicit_value=std::nullopt) :
+                type(type_str),
                 keys_(split(key)),
-                help(std::move(help)),
+                help_(std::move(help)),
                 implicit_value_(std::move(implicit_value)) {
         }
 
@@ -239,7 +239,7 @@ namespace argparse {
 
     private:
         std::vector<std::string> keys_;
-        std::string help;
+        std::string help_;
         std::optional<std::string> value_;
         std::optional<std::string> implicit_value_;
         std::optional<std::string> default_str_;
@@ -261,9 +261,9 @@ namespace argparse {
                 this->value_ = value;
                 datap->convert(value);
             } catch (const std::invalid_argument &e) {
-                error = "Invalid argument, could not convert \"" + value + "\" for " + _get_keys() + " (" + help + ")";
+                error = "Invalid argument, could not convert \"" + value + "\" for " + _get_keys() + " (" + help_ + ")";
             } catch (const std::runtime_error &e) {
-                error = "Invalid argument \"" + value + "\" for " + _get_keys() + " (" + help + "). Error: " + e.what();
+                error = "Invalid argument \"" + value + "\" for " + _get_keys() + " (" + help_ + "). Error: " + e.what();
             }
         }
 
@@ -275,7 +275,7 @@ namespace argparse {
             } else if (default_str_.has_value()) {   // in cases where a string is provided to the `set_default` function
                 _convert(default_str_.value());
             } else {
-                error = "Argument missing: " + _get_keys() + " (" + help + ")";
+                error = "Argument missing: " + _get_keys() + " (" + help_ + ")";
             }
         }
 
@@ -294,7 +294,7 @@ namespace argparse {
         std::shared_ptr<Args> subargs;
         std::string subcommand_name;
 
-        explicit SubcommandEntry(std::string subcommand_name) : subcommand_name(std::move(subcommand_name)) {}
+        explicit SubcommandEntry(std::string subcommand) : subcommand_name(std::move(subcommand)) {}
 
         template<typename T> operator T &() {
             static_assert(std::is_base_of_v<Args, T>, "Subcommand type must be a derivative of argparse::Args");
@@ -405,13 +405,13 @@ namespace argparse {
             }
             cout << endl;
             for (const auto &entry : arg_entries) {
-                cout << setw(17) << entry->keys_[0] << " : " << entry->help << entry->info() << endl;
+                cout << setw(17) << entry->keys_[0] << " : " << entry->help_ << entry->info() << endl;
             }
 
             if (has_options()) cout << endl << "Options:" << endl;
             for (const auto &entry : all_entries) {
                 if (entry->type != Entry::ARG) {
-                    cout << setw(17) << entry->_get_keys() << " : " << entry->help << entry->info() << endl;
+                    cout << setw(17) << entry->_get_keys() << " : " << entry->help_ << entry->info() << endl;
                 }
             }
 
@@ -557,7 +557,7 @@ namespace argparse {
 
         void print() const {
             for (const auto &entry : all_entries) {
-                std::string snip = entry->type == Entry::ARG ? "(" + (entry->help.size() > 10 ? entry->help.substr(0, 7) + "..." : entry->help) + ")" : "";
+                std::string snip = entry->type == Entry::ARG ? "(" + (entry->help_.size() > 10 ? entry->help_.substr(0, 7) + "..." : entry->help_) + ")" : "";
                 cout << setw(21) << entry->_get_keys() + snip << " : " << (entry->is_set_by_user? bold(entry->value_.value_or("null")) : entry->value_.value_or("null")) << endl;
             }
 

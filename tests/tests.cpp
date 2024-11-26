@@ -23,14 +23,14 @@ struct Custom {
 std::pair<int, char**> get_argc_argv(std::string &str) {
     std::string key;
     std::vector<char*> splits = {(char *)str.c_str()};
-    for (int i = 1; i < str.size(); i++) {
+    for (size_t i = 1; i < str.size(); i++) {
         if (str[i] == ' ') {
             str[i] = '\0';
             splits.emplace_back(&str[++i]);
         }
     }
     char** argv = new char*[splits.size()];
-    for (int i = 0; i < splits.size(); i++) {
+    for (size_t i = 0; i < splits.size(); i++) {
         argv[i] = splits[i];
     }
 
@@ -134,14 +134,14 @@ void TEST_ALL() {
         assert(args.named_arg == "named_arg_input");
         assert(args.dst_path == "destination");
         assert(args.k == 5);
-        assert(args.alpha != nullptr && std::abs(*args.alpha - 1) < 0.0001);
-        assert(std::abs(args.beta - 3.3) < 0.0001);
-        assert(std::abs(args.beta2 - 0.6) < 0.0001);
-        assert(args.gamma != nullptr && std::abs(*args.gamma - 0.5) < 0.0001);
+        assert(args.alpha != nullptr && std::abs(*args.alpha - 1) < 0.0001f);
+        assert(std::abs(args.beta - 3.3f) < 0.0001f);
+        assert(std::abs(args.beta2 - 0.6f) < 0.0001f);
+        assert(args.gamma != nullptr && std::abs(*args.gamma - 0.5f) < 0.0001f);
         assert(args.numbers.size() == 5 && args.numbers[2] == 3);
         assert(args.numbers2.size() == 3 && args.numbers2[2] == 8);
         assert(args.files.size() == 3 && args.files[2] == "f3");
-        assert(std::abs(args.opt.value() - 1.0f) < 0.0001);
+        assert(std::abs(args.opt.value() - 1.0f) < 0.0001f);
         assert(args.custom.message == "hello_custom");
         assert(args.flag1 == false);
         assert(args.verbose);
@@ -155,13 +155,13 @@ void TEST_ALL() {
         assert(args.dst_path == "world");
         assert(args.k == 3);
         assert(args.alpha == nullptr);
-        assert(std::abs(args.beta - 0.6) < 0.0001);
-        assert(std::abs(args.beta2 - 0.6) < 0.0001);
+        assert(std::abs(args.beta - 0.6f) < 0.0001f);
+        assert(std::abs(args.beta2 - 0.6f) < 0.0001f);
         assert(args.gamma == nullptr);
         assert(args.numbers.size() == 2 && args.numbers[1] == 2);
         assert(args.numbers2.size() == 3 && args.numbers2[2] == 5);
         assert(args.files.empty());
-        assert(std::abs(args.opt.value() - 1.0f) < 0.0001);
+        assert(std::abs(args.opt.value() - 1.0f) < 0.0001f);
         assert(args.custom.message == "hello_custom");
         assert(args.flag1 == false);
         assert(args.verbose);
@@ -241,7 +241,7 @@ void TEST_SUBCOMMANDS() {
     }
 }
 
-int main(int argc, char* argv[]) {
+int main() {
     TEST_ALL();
     TEST_MULTI();
     TEST_MULTI2();

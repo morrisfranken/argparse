@@ -21,11 +21,15 @@ struct MyArgs : public argparse::Args {
     std::optional<float> &beta      = kwarg("b,beta", "An optional float parameter with std::optional return");
     int &val                        = kwarg("val", "An optional int value").set_default(20.0);
     short &small                    = kwarg("short", "An optional short value").set_default(16);
+    size_t &std_sizet               = kwarg("size_t", "An optional size_t value").set_default(19);
+    long long &seed                 = kwarg("seed", "An optional size_t value").set_default(time(NULL));
     std::vector<int> &numbers       = kwarg("n,numbers", "An int vector, comma separated");
     std::vector<std::string> &files = kwarg("files", "multiple arguments").multi_argument();
+    int &height                     = kwarg("h,height", "The height of an input image").set_default(256);
+    std::wstring &wstring           = kwarg("wstring", "An optional wstring value").set_default(L"hello");
     bool &verbose                   = flag("v,verbose", "A flag to toggle verbose");
 
-    void welcome() {
+    void welcome() override {
         std::cout << "Welcome to Argparse" << std::endl;
     }
 };

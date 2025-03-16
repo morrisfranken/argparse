@@ -73,7 +73,9 @@ namespace argparse {
     }
 
     template<typename T> std::string toString(const T &v) {
-        if constexpr (has_ostream_operator<T>::value) {
+        if constexpr (std::is_convertible<T, std::wstring>::value) {
+            return std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(v);
+        } else if constexpr (has_ostream_operator<T>::value) {
             return static_cast<std::ostringstream &&>((std::ostringstream() << std::boolalpha << v)).str();       // https://github.com/stan-dev/math/issues/590#issuecomment-550122627
         } else {
             return "unknown";
@@ -100,6 +102,7 @@ namespace argparse {
 
     template<typename T> inline T get(const std::string &v);
     template<> inline std::string get(const std::string &v) { return v; }
+    template <> inline std::wstring get(const std::string &v) { return std::wstring(v.begin(), v.end()); }
     template<> inline char get(const std::string &v) { return v.empty()? throw std::invalid_argument("empty string") : v.size() > 1?  v.substr(0,2) == "0x"? (char)std::stoul(v, nullptr, 16) : (char)std::stoi(v) : v[0]; }
     template<> inline int get(const std::string &v) { return std::stoi(v); }
     template<> inline short get(const std::string &v) { return std::stoi(v); }
@@ -454,7 +457,8 @@ namespace argparse {
             program_name = std::filesystem::path(argv[0]).stem().string();
             params = std::vector<std::string>(argv + 1, argv + argc);
 
-            bool& _help = flag("?,help", "print help");
+            std::string help_keys = kwarg_entries.count("h") ? "?,help" : "?,h,help";
+            bool& _help = flag(help_keys, "print help");
 
             auto is_value = [&](const size_t &i) -> bool {
                 return params.size() > i && (params[i][0] != '-' || (params[i].size() > 1 && std::isdigit(params[i][1])));  // check for number to not accidentally mark negative numbers as non-parameter
@@ -484,7 +488,10 @@ namespace argparse {
                         entry->error = "No value provided for: " + key;
                     }
                 } else {
-                    cerr << "unrecognised commandline argument: " << key << endl;
+                    if (raise_on_error)
+                        throw std::runtime_error("unrecognised commandline argument :  " + key);
+                    else
+                        cerr << "unrecognised commandline argument :  " << key << endl;
                 }
             };
             auto add_param = [&](size_t &i, const size_t &start) {

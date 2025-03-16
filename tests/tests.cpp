@@ -123,12 +123,16 @@ void TEST_ALL() {
         std::vector<int>& numbers2      = kwarg("numbers2", "An optional vector of integers").set_default("3,4,5");
         std::vector<std::string> &files = kwarg("files", "multiple arguments").multi_argument();
         std::optional<float>& opt       = kwarg("o,optional", "An optional float parameter");
+        size_t &std_sizet               = kwarg("size_t", "An optional size_t value").set_default(19);
+        long long &seed                 = kwarg("seed", "An optional long long value").set_default(time(NULL));
+        int &height                     = kwarg("h,height", "The height of an input image").set_default(256);
+        std::wstring &wstring           = kwarg("wstring", "An optional wstring value").set_default(L"hello");
         bool& flag1                     = flag("f,flag", "A test flag");
         bool& verbose                   = flag("v,verbose", "A flag to toggle verbose");
     };
 
     {
-        Args args = test_args<Args>("argparse_test source_path named_arg_input destination -k=5 --alpha=1 --beta 3.3 --gamma --numbers=1,2,3,4,5 --numbers2 6,7,8 --files f1 f2 f3 --custom hello_custom --optional 1 --verbose");
+        Args args = test_args<Args>("argparse_test source_path named_arg_input destination -k=5 --alpha=1 --beta 3.3 --gamma --numbers=1,2,3,4,5 --numbers2 6,7,8 --files f1 f2 f3 --custom hello_custom --optional 1 --verbose -h 128 --wstring wide-string ");
 
         assert(args.src_path == "source_path");
         assert(args.named_arg == "named_arg_input");
@@ -144,6 +148,8 @@ void TEST_ALL() {
         assert(std::abs(args.opt.value() - 1.0f) < 0.0001);
         assert(args.custom.message == "hello_custom");
         assert(args.flag1 == false);
+        assert(args.height == 128);
+        assert(args.wstring == L"wide-string");
         assert(args.verbose);
     }
 
@@ -164,6 +170,8 @@ void TEST_ALL() {
         assert(std::abs(args.opt.value() - 1.0f) < 0.0001);
         assert(args.custom.message == "hello_custom");
         assert(args.flag1 == false);
+        assert(args.height == 256);
+        assert(args.wstring == L"hello");
         assert(args.verbose);
     }
 }
@@ -172,6 +180,7 @@ void TEST_THROW() {
     struct Args : public argparse::Args {
         std::string &A = arg("Source path");
         int& k         = kwarg("k", "").set_default(0);   // Implicit value set to 3
+        int& alpha     = kwarg("a,alpha", "required alpha value");
     };
 
     {
@@ -191,6 +200,16 @@ void TEST_THROW() {
             auto args = argparse::parse<Args>(argc, argv, true);
         } catch (const std::runtime_error &e) {
             assert(std::string(e.what()) ==  "Invalid argument, could not convert \"notanobumber\" for -k ()");
+        }
+    }
+
+    {
+        std::string command = "argparse_test source_path source_path";
+        const auto &[argc, argv] = get_argc_argv(command);
+        try {
+            auto args = argparse::parse<Args>(argc, argv, true);
+        } catch (const std::runtime_error &e) {
+            assert(std::string(e.what()) ==  "Argument missing: -a,--alpha (required alpha value)");
         }
     }
 }
@@ -241,6 +260,66 @@ void TEST_SUBCOMMANDS() {
     }
 }
 
+// New tests for additional scenarios
+void TEST_SHORT_GROUP() {
+    struct Args : public argparse::Args {
+        bool &flag_x = flag("x", "Flag X");
+        bool &flag_y = flag("y", "Flag Y");
+        std::string &file = arg("File path");
+    };
+
+    {
+        Args args = test_args<Args>("argparse_test /path/to/file -xy");
+        assert(args.flag_x);
+        assert(args.flag_y);
+        assert(args.file == "/path/to/file");
+    }
+}
+
+void TEST_EQUALS() {
+    struct Args : public argparse::Args {
+        std::string &input = arg("Input");
+        int &number = kwarg("n,number", "A number").set_default(10);
+    };
+
+    {
+        Args args = test_args<Args>("argparse_test data -n=42");
+        assert(args.input == "data");
+        assert(args.number == 42);
+    }
+    {
+        Args args = test_args<Args>("argparse_test data -n 7");
+        assert(args.input == "data");
+        assert(args.number == 7);
+    }
+}
+
+void TEST_EMPTY_MULTI() {
+    struct Args : public argparse::Args {
+        std::vector<std::string> &items = arg("Items").multi_argument().set_default<std::vector<std::string>>({});
+        std::string &name = arg("Name");
+    };
+
+    {
+        Args args = test_args<Args>("argparse_test John");
+        assert(args.name == "John");
+        assert(args.items.empty());
+    }
+}
+
+void TEST_OPTIONAL_POINTER() {
+    struct Args : public argparse::Args {
+        std::shared_ptr<int> &ptr = kwarg("p,pointer", "An optional integer pointer");
+        std::string &text = arg("Text");
+    };
+
+    {
+        Args args = test_args<Args>("argparse_test hello");
+        assert(args.text == "hello");
+        assert(args.ptr == nullptr);
+    }
+}
+
 int main(int argc, char* argv[]) {
     TEST_ALL();
     TEST_MULTI();
@@ -252,7 +331,11 @@ int main(int argc, char* argv[]) {
     std::cout << "Magic Enum not installed in this system, therefore native enum support disabled" << std::endl;
 #endif
 
-    TEST_SUBCOMMANDS();
+    TEST_SUBCOMMANDS();    
+    TEST_SHORT_GROUP();
+    TEST_EQUALS();
+    TEST_EMPTY_MULTI();
+    TEST_OPTIONAL_POINTER();
 
     std::cout << "finished all tests" << std::endl;
     return 0;

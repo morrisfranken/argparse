@@ -40,6 +40,8 @@
 #include <type_traits>         // for declval, false_type, true_type, is_enum
 #include <utility>             // for move, pair
 #include <vector>              // for vector
+#include <codecvt>             // for std::wstring_convert
+#include <locale>              // for std::wstring_convert
 
 #if __has_include(<magic_enum.hpp>)
 #include <magic_enum.hpp>      // for enum_entries

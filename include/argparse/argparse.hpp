@@ -35,7 +35,14 @@
 #include <memory>              // for allocator, shared_ptr, __shared_ptr_ac...
 #include <optional>            // for optional, nullopt
 #include <stdexcept>           // for runtime_error, invalid_argument
+#ifdef ARGPARSE_USE_EXPERIMENTAL_FS
+#include <experimental/filesystem>
+namespace std {
+	namespace filesystem = experimental::filesystem;
+}
+#else
 #include <filesystem>          // for getting program_name from path
+#endif
 #include <string>              // for string, operator+, basic_string, char_...
 #include <type_traits>         // for declval, false_type, true_type, is_enum
 #include <utility>             // for move, pair

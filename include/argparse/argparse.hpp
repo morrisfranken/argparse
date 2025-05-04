@@ -76,7 +76,24 @@ namespace argparse {
 
     template<typename T> std::string toString(const T &v) {
         if constexpr (std::is_convertible<T, std::wstring>::value) {
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4996) // C4996 is the typical MSVC deprecation warning
+#endif
             return std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(v);
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
+#endif
         } else if constexpr (has_ostream_operator<T>::value) {
             return static_cast<std::ostringstream &&>((std::ostringstream() << std::boolalpha << v)).str();       // https://github.com/stan-dev/math/issues/590#issuecomment-550122627
         } else {
@@ -104,7 +121,7 @@ namespace argparse {
 
     template<typename T> inline T get(const std::string &v);
     template<> inline std::string get(const std::string &v) { return v; }
-    template <> inline std::wstring get(const std::string &v) { return std::wstring(v.begin(), v.end()); }
+    template<> inline std::wstring get(const std::string &v) { return std::wstring(v.begin(), v.end()); }
     template<> inline char get(const std::string &v) { return v.empty()? throw std::invalid_argument("empty string") : v.size() > 1?  v.substr(0,2) == "0x"? (char)std::stoul(v, nullptr, 16) : (char)std::stoi(v) : v[0]; }
     template<> inline int get(const std::string &v) { return std::stoi(v); }
     template<> inline short get(const std::string &v) { return std::stoi(v); }

@@ -94,11 +94,18 @@ namespace argparse {
 #elif defined(_MSC_VER)
 #pragma warning(pop)
 #endif
+#ifdef HAS_MAGIC_ENUM
+        } else if constexpr (std::is_enum<T>::value) {
+            for (const auto &[name, value] : magic_enum::enum_entries<T>()) {
+                if (v == name) {
+                    return std::string{ value };
+                }
+            }
+#endif
         } else if constexpr (has_ostream_operator<T>::value) {
             return static_cast<std::ostringstream &&>((std::ostringstream() << std::boolalpha << v)).str();       // https://github.com/stan-dev/math/issues/590#issuecomment-550122627
-        } else {
-            return "unknown";
         }
+        return "unknown";
     }
 
     std::vector<std::string> inline split(const std::string &str) {

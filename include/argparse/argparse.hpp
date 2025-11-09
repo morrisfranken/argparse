@@ -43,8 +43,12 @@
 #include <codecvt>             // for std::wstring_convert
 #include <locale>              // for std::wstring_convert
 
+// for enum_entries
 #if __has_include(<magic_enum.hpp>)
-#include <magic_enum.hpp>      // for enum_entries
+#include <magic_enum.hpp>
+#define HAS_MAGIC_ENUM
+#elif __has_include(<magic_enum/magic_enum.hpp>)
+#include <magic_enum/magic_enum.hpp>
 #define HAS_MAGIC_ENUM
 #endif
 

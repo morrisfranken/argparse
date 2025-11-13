@@ -4,11 +4,42 @@ project(argparse VERSION 1.4.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
+
+include(CheckCXXSourceCompiles)
+set(CMAKE_REQUIRED_FLAGS "--std=c++17")
+check_cxx_source_compiles(
+  "#include <filesystem>
+int main() {
+std::filesystem::path(\"foo\");
+return 0;
+}"
+  ARGPARSE_HAS_FILESYSTEM)
+if(NOT ARGPARSE_HAS_FILESYSTEM)
+  set(CMAKE_REQUIRED_LIBRARIES "-lstdc++fs")
+  check_cxx_source_compiles(
+    "#include <experimental/filesystem>
+int main() {
+std::experimental::filesystem::path(\"foo\");
+return 0;
+}"
+    ARGPARSE_HAS_EXPERIMENTAL_FILESYSTEM)
+  if(NOT ARGPARSE_HAS_EXPERIMENTAL_FILESYSTEM)
+    message(
+      FATAL_ERROR
+        "Compiler does not have either <filesystem> or <experimental/filesystem> support"
+    )
+  endif()
+endif()
+
 # installing the header-only-library
 add_library(${PROJECT_NAME} INTERFACE)
 add_library(morrisfranken::argparse ALIAS argparse)
 
 target_compile_features(argparse INTERFACE cxx_std_17)
+if(ARGPARSE_HAS_EXPERIMENTAL_FILESYSTEM)
+  target_compile_definitions(argparse INTERFACE "-DARGPARSE_USE_EXPERIMENTAL_FS=1")
+  target_link_libraries(argparse INTERFACE "-lstdc++fs")
+endif()
 target_include_directories(argparse INTERFACE
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)

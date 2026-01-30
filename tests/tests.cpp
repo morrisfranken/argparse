@@ -204,7 +204,7 @@ void TEST_THROW() {
     }
 
     {
-        std::string command = "argparse_test source_path source_path";
+        std::string command = "argparse_test source_path";
         const auto &[argc, argv] = get_argc_argv(command);
         try {
             auto args = argparse::parse<Args>(argc, argv, true);
@@ -212,6 +212,17 @@ void TEST_THROW() {
             assert(std::string(e.what()) ==  "Argument missing: -a,--alpha (required alpha value)");
         }
     }
+
+    {
+        std::string command = "argparse_test source_path source_path";
+        const auto &[argc, argv] = get_argc_argv(command);
+        try {
+            auto args = argparse::parse<Args>(argc, argv, true);
+        } catch (const std::runtime_error &e) {
+            assert(std::string(e.what()) ==  "Too many positional values");
+        }
+    }
+
 }
 
 void TEST_SUBCOMMANDS() {
@@ -331,7 +342,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Magic Enum not installed in this system, therefore native enum support disabled" << std::endl;
 #endif
 
-    TEST_SUBCOMMANDS();    
+    TEST_SUBCOMMANDS();
     TEST_SHORT_GROUP();
     TEST_EQUALS();
     TEST_EMPTY_MULTI();

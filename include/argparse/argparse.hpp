@@ -560,6 +560,16 @@ namespace argparse {
                 if (arg_i < arguments_flat.size())
                     arg_entries[arg_i]->_convert(arguments_flat[arg_i]);
             }
+
+            if (arg_i == arg_entries.size() && arg_i < arguments_flat.size()) {
+                if (raise_on_error) {
+                    throw std::runtime_error("Too many positional values");
+                } else {
+                    std::cerr << "Too many positional values" << std::endl;
+                    exit(-1);
+                }
+            }
+
             size_t arg_j = 1;
             for (size_t j_end = arg_entries.size() - arg_i; arg_j <= j_end; arg_j++) { // iterate from back to front, to ensure non-multi-arguments in the front and back are given preference
                 size_t flat_idx = arguments_flat.size() - arg_j;

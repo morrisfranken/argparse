@@ -42,6 +42,7 @@
 #include <vector>              // for vector
 #include <codecvt>             // for std::wstring_convert
 #include <locale>              // for std::wstring_convert
+#include <bitset>              // for short flag names look-up table
 
 // for enum_entries
 #if __has_include(<magic_enum.hpp>)
@@ -138,7 +139,7 @@ namespace argparse {
     template<> inline short get(const std::string &v) { return std::stoi(v); }
     template<> inline long get(const std::string &v) { return std::stol(v); }
     template<> inline long long get(const std::string &v) { return std::stol(v); }
-    template<> inline bool get(const std::string &v) { return to_lower(v) == "true" || v == "1"; }
+    template<> inline bool get(const std::string &v) { return to_lower(v) == "true" || v == "1" || v == "on"; }
     template<> inline float get(const std::string &v) { return std::stof(v); }
     template<> inline double get(const std::string &v) { return std::stod(v); }
     template<> inline unsigned char get(const std::string &v) { return get<char>(v); }
@@ -350,6 +351,7 @@ namespace argparse {
         std::map<std::string, std::shared_ptr<Entry>> kwarg_entries;
         std::vector<std::shared_ptr<Entry>> arg_entries;
         std::map<std::string, std::shared_ptr<SubcommandEntry>> subcommand_entries;
+        std::bitset<256> short_explicit_names;
         bool has_options() {
             return std::find_if(all_entries.begin(), all_entries.end(), [](auto e) { return e->type != Entry::ARG; }) != all_entries.end();
         };
@@ -396,6 +398,9 @@ namespace argparse {
             all_entries.emplace_back(entry);
             for (const std::string &k : entry->keys_) {
                 kwarg_entries[k] = entry;
+                if (k.size() == 1 && !implicit_value) {
+                    short_explicit_names.set(k[0]);
+                }
             }
             return *entry;
         }
@@ -493,6 +498,15 @@ namespace argparse {
             auto is_value = [&](const size_t &i) -> bool {
                 return params.size() > i && (params[i][0] != '-' || (params[i].size() > 1 && std::isdigit(params[i][1])));  // check for number to not accidentally mark negative numbers as non-parameter
             };
+
+            auto parse_multi_argument = [&](size_t &i, Entry& entry, std::string value) {
+                if (entry._is_multi_argument) {
+                    while (is_value(i + 1))
+                        value += "," + params[++i];
+                }
+                entry._convert(value);
+            };
+
             auto parse_param = [&](size_t &i, const std::string &key, const bool is_short, const std::optional<std::string> &equal_value=std::nullopt) {
                 auto itt = kwarg_entries.find(key);
                 if (itt != kwarg_entries.end()) {
@@ -503,12 +517,7 @@ namespace argparse {
                         entry->_convert(*entry->implicit_value_);
                     } else if (!is_short) { // short values are not allowed to look ahead for the next parameter
                         if (is_value(i + 1)) {
-                            std::string value = params[++i];
-                            if (entry->_is_multi_argument) {
-                                while (is_value(i + 1))
-                                    value += "," + params[++i];
-                            }
-                            entry->_convert(value);
+                            parse_multi_argument(i, *entry, params[++i]);
                         } else if (entry->_is_multi_argument) {
                             entry->_convert("");    // for multiargument parameters, return an empty vector when not passing any more values
                         } else {
@@ -524,6 +533,7 @@ namespace argparse {
                         cerr << "unrecognised commandline argument :  " << key << endl;
                 }
             };
+
             auto add_param = [&](size_t &i, const size_t &start) {
                 size_t eq_idx = params[i].find('=');  // check if value was passed using the '=' sign
                 if (eq_idx != std::string::npos) { // key/value from = notation
@@ -545,10 +555,15 @@ namespace argparse {
                         const size_t j_end = std::min(params[i].size(), params[i].find('=')) - 1;
                         for (size_t j = 1; j < j_end; j++) { // add possible other flags
                             const std::string key = std::string(1, params[i][j]);
+                            if (short_explicit_names[params[i][j]]) {
+                                parse_multi_argument(i, *kwarg_entries[key], params[i].substr(j + 1));
+                                goto skip;
+                            }
                             parse_param(i, key, true);
                         }
                         add_param(i, j_end);
-                    }
+                        skip:;
+                     }
                 } else {
                     arguments_flat.emplace_back(params[i]);
                 }
@@ -560,6 +575,7 @@ namespace argparse {
                 if (arg_i < arguments_flat.size())
                     arg_entries[arg_i]->_convert(arguments_flat[arg_i]);
             }
+
             size_t arg_j = 1;
             for (size_t j_end = arg_entries.size() - arg_i; arg_j <= j_end; arg_j++) { // iterate from back to front, to ensure non-multi-arguments in the front and back are given preference
                 size_t flat_idx = arguments_flat.size() - arg_j;

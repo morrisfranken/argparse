@@ -186,32 +186,42 @@ void TEST_THROW() {
     {
         std::string command = "argparse_test";
         const auto &[argc, argv] = get_argc_argv(command);
+        bool is_thrown{};
         try {
             auto args = argparse::parse<Args>(argc, argv, true);
         } catch (const std::runtime_error &e) {
             assert(std::string(e.what()) ==  "Argument missing: arg_0 (Source path)");
+            is_thrown = true;
         }
+        assert(is_thrown && "Must throw");
     }
 
     {
         std::string command = "argparse_test source_path -k=notanobumber";
         const auto &[argc, argv] = get_argc_argv(command);
+        bool is_thrown{};
         try {
             auto args = argparse::parse<Args>(argc, argv, true);
         } catch (const std::runtime_error &e) {
             assert(std::string(e.what()) ==  "Invalid argument, could not convert \"notanobumber\" for -k ()");
+            is_thrown = true;
         }
+        assert(is_thrown && "Must throw");
     }
 
     {
         std::string command = "argparse_test source_path source_path";
         const auto &[argc, argv] = get_argc_argv(command);
+        bool is_thrown{};
         try {
             auto args = argparse::parse<Args>(argc, argv, true);
         } catch (const std::runtime_error &e) {
             assert(std::string(e.what()) ==  "Argument missing: -a,--alpha (required alpha value)");
+            is_thrown = true;
         }
+        assert(is_thrown && "Must throw");
     }
+
 }
 
 void TEST_SUBCOMMANDS() {
@@ -320,6 +330,53 @@ void TEST_OPTIONAL_POINTER() {
     }
 }
 
+void TEST_ADJOINT() {
+    struct Args : public argparse::Args {
+        int &number1 = kwarg("o,number1", "A optional number").set_default(10);
+        int &number2 = kwarg("n,number2", "A mandatory number");
+        std::vector<int> &numbers = kwarg("m,numbers", "Multiple numbers").multi_argument().set_default(std::vector<int>());
+        bool &flag1 = flag("f,flag", "A flag");
+        bool &flag2 = flag("flag2", "A flag");
+        bool &flag3 = flag("g", "A flag");
+    };
+
+    bool is_thrown{};
+    try {
+        std::string command{"argparse_test -n10 -flag2"};
+        const auto &[argc, argv] = get_argc_argv(command);
+        auto args = argparse::parse<Args>(argc, argv, true);
+    } catch (const std::runtime_error &e) {
+        std::cout << std::string(e.what()) << '\n';
+        assert(std::string(e.what()) ==  "unrecognised commandline argument :  l");
+        is_thrown = true;
+    }
+    assert(is_thrown && "Must throw");
+
+    {
+        Args args = test_args<Args>("argparse_test -n10 --flag2");
+        assert(args.number2 == 10);
+        assert(args.flag2);
+    }
+
+    {
+        Args args = test_args<Args>("argparse_test -fn10 -go5");
+        assert(args.number2 == 10);
+        assert(args.number1 == 5);
+        assert(args.flag1);
+        assert(!args.flag2);
+        assert(args.flag3);
+    }
+
+    {
+        Args args = test_args<Args>("argparse_test -fgm1 2 3 -n=12");
+        assert(args.flag1);
+        assert(!args.flag2);
+        assert(args.flag3);
+        assert(args.number2 == 12);
+        assert(args.numbers == std::vector<int>({1, 2, 3}));
+    }
+}
+
 int main(int argc, char* argv[]) {
     TEST_ALL();
     TEST_MULTI();
@@ -331,11 +388,12 @@ int main(int argc, char* argv[]) {
     std::cout << "Magic Enum not installed in this system, therefore native enum support disabled" << std::endl;
 #endif
 
-    TEST_SUBCOMMANDS();    
+    TEST_SUBCOMMANDS();
     TEST_SHORT_GROUP();
     TEST_EQUALS();
     TEST_EMPTY_MULTI();
     TEST_OPTIONAL_POINTER();
+    TEST_ADJOINT();
 
     std::cout << "finished all tests" << std::endl;
     return 0;
